@@ -21,7 +21,7 @@
   SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-#include <GLES2/gl2.h>
+#include <GLES3/gl3.h>
 
 #include <helpers/base_gl.h>
 #include <helpers/file.h>

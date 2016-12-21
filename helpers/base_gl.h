@@ -24,7 +24,7 @@
 #ifndef MYY_HELPERS_OPENGL
 #define MYY_HELPERS_OPENGL 1
 
-#include <GLES2/gl2.h>
+#include <GLES3/gl3.h>
 #include <helpers/struct.h>
 
 struct point_2D { GLfloat x, y; } __PALIGN__;
