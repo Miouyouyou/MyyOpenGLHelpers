@@ -28,7 +28,7 @@
 #define sh_pointToNextString(contiguous_strings) while (*contiguous_strings++)
 #include <stdint.h>
 
-unsigned int myy_string_size(const uint8_t * const string) {
+static unsigned int myy_string_size(const uint8_t * const string) {
   unsigned int c = 0;
   for(; string[c] != 0; c++);
   return c;
