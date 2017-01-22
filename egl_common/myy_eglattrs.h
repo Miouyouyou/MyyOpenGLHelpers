@@ -28,7 +28,7 @@
 
 const EGLint eglAttribs[] =  {
   EGL_SURFACE_TYPE, EGL_WINDOW_BIT,
-  EGL_CONFORMANT, EGL_OPENGL_ES2_BIT,
+  EGL_CONFORMANT, EGL_OPENGL_ES3_BIT,
   EGL_SAMPLES,         4,
   EGL_RED_SIZE,        5,
   EGL_GREEN_SIZE,      6,
@@ -39,7 +39,7 @@ const EGLint eglAttribs[] =  {
 };
 
 const EGLint GiveMeGLES2[] = {
-  EGL_CONTEXT_CLIENT_VERSION, 2,
+  EGL_CONTEXT_CLIENT_VERSION, 3,
   EGL_NONE
 };
 #endif
