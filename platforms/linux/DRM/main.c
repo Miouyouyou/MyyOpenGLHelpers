@@ -45,6 +45,7 @@
 #include <assert.h>
 
 #include <myy.h>
+#include <myy/egl_common/myy_eglattrs.h>
 
 #define ARRAY_SIZE(arr) (sizeof(arr) / sizeof((arr)[0]))
 
@@ -96,17 +97,17 @@ static uint32_t find_crtc_for_encoder(const drmModeRes *resources,
 static uint32_t find_crtc_for_connector
 (drmModeRes const * __restrict const resources,
  drmModeConnector const * __restrict const connector,
- struct drm_infos const * __restrict const drm_infos) 
+ struct drm_infos const * __restrict const drm_infos)
 {
 	int i;
 
 	for (i = 0; i < connector->count_encoders; i++) {
 		const uint32_t encoder_id = connector->encoders[i];
-		drmModeEncoder *encoder = 
+		drmModeEncoder *encoder =
 		  drmModeGetEncoder(drm_infos->fd, encoder_id);
 
 		if (encoder) {
-			const uint32_t crtc_id = 
+			const uint32_t crtc_id =
 			  find_crtc_for_encoder(resources, encoder);
 
 			drmModeFreeEncoder(encoder);
@@ -216,7 +217,7 @@ static int init_drm
 }
 
 static int init_gbm
-(struct drm_infos * __restrict const drm_infos, 
+(struct drm_infos * __restrict const drm_infos,
  struct gbm_infos * __restrict const gbm_infos)
 {
 	gbm_infos->dev = gbm_create_device(drm_infos->fd);
@@ -239,7 +240,7 @@ static int init_gbm
 
 static int init_gl
 (struct egl_infos * const egl_infos,
- struct gbm_infos * const gbm_infos) 
+ struct gbm_infos * const gbm_infos)
 {
 	EGLint major, minor, n;
 	GLuint vertex_shader, fragment_shader;
@@ -251,19 +252,13 @@ static int init_gl
 	EGLSurface surface;
 
 	static const EGLint context_attribs[] = {
-		EGL_CONTEXT_CLIENT_VERSION, 3,
-		EGL_NONE
+		MYY_CURRENT_GL_CONTEXT,
+		EGL_NONE, EGL_NONE
 	};
 
 	static const EGLint config_attribs[] = {
-		EGL_SURFACE_TYPE, EGL_WINDOW_BIT,
-		EGL_RED_SIZE, 1,
-		EGL_GREEN_SIZE, 1,
-		EGL_BLUE_SIZE, 1,
-		EGL_ALPHA_SIZE, 1,
-		EGL_STENCIL_SIZE, 1,
-		EGL_RENDERABLE_TYPE, EGL_OPENGL_ES3_BIT,
-		EGL_NONE
+		MYY_EGL_COMMON_PC_ATTRIBS,
+		EGL_NONE, EGL_NONE
 	};
 
 	PFNEGLGETPLATFORMDISPLAYEXTPROC get_platform_display = NULL;
@@ -271,7 +266,7 @@ static int init_gl
 		(void *) eglGetProcAddress("eglGetPlatformDisplayEXT");
 	assert(get_platform_display != NULL);
 
-	display = 
+	display =
 	  get_platform_display(EGL_PLATFORM_GBM_KHR, gbm_infos->dev, NULL);
 
 	if (!eglInitialize(display, &major, &minor)) {
@@ -358,9 +353,9 @@ static struct drm_fb * drm_fb_get_from_bo
 	handle = gbm_bo_get_handle(bo).u32;
 
 	ret = drmModeAddFB(
-	  drm_infos->fd, 
-	  width, height, 
-	  24, 32, 
+	  drm_infos->fd,
+	  width, height,
+	  24, 32,
 	  stride, handle, &fb->fb_id
 	);
 	if (ret) {
@@ -376,7 +371,7 @@ static struct drm_fb * drm_fb_get_from_bo
 
 static void page_flip_handler
 (int fd, unsigned int frame,
- unsigned int sec, unsigned int usec, 
+ unsigned int sec, unsigned int usec,
  void * data)
 {
 	int *waiting_for_flip = data;

@@ -26,43 +26,88 @@
 
 #include <stdint.h>
 
-unsigned int fh_ReadFileToBuffer
-(char const * __restrict const name,
- void * __restrict const buffer,
- const unsigned int size);
-
-unsigned int fh_ReadFileToStringBuffer
-(char const * __restrict const name,
- void * __restrict const buffer,
- const unsigned int size);
-
-/** Copy the whole file contents into buffer, using the AssetsManager
- *
+/** Read `size` bytes from the file at `pathname` into `buffer`
+ * 
  * ASSUMPTIONS :
- * - There's a publicly available AssetsManager address identified by
- *   myy_assets_manager.
- * - 'buffer' can contain the whole file
- *
- * CAUTION :
- * If there's not enough space in buffer, this procedure will most
- * likely generate a SIGSEGV or, worse, corrupt the memory.
- *
- * PARAMS :
- * @param filepath The file's path in the Assets archive.
- * @param buffer   The buffer to store the file's content in.
- *
- * RETURNS :
- * 1 if the whole copy was done successfully
- * 0 otherwise
+ * - `buffer` can contain `size` bytes
+ * 
+ * @params
+ * @param pathname The file's name and path (e.g. /tmp/file.txt)
+ * @param buffer   The buffer to store the file bytes in
+ * @param size     How many bytes to copy from the file into the buffer
+ * 
+ * @return
+ * - The number of bytes read on success. (Can be 0 if buffer == 0)
+ * - -1 on failure
  */
+int fh_ReadFileToBuffer
+(char const * __restrict const pathname,
+ void * __restrict const buffer,
+ const unsigned int size);
+
+/** Read `size` bytes from the file at `pathname` into `buffer` and
+ *  add a '\0' suffix
+ * 
+ * ASSUMPTIONS :
+ * - `buffer` can contain `size` bytes + 1
+ * 
+ * @params
+ * @param pathname The file's name and path (e.g. /tmp/file.txt)
+ * @param buffer   The buffer to store the file bytes in
+ * @param size     How many bytes to copy from the file into the buffer
+ * 
+ * @returns
+ * - The number of bytes read on success. (Can be 0 if buffer == 0)
+ * - -1 on failure
+ */
+int fh_ReadFileToStringBuffer
+(char const * __restrict const pathname,
+ void * __restrict const buffer,
+ const unsigned int size);
+
+/** Read `size` bytes from the file at `pathname` into `buffer`,
+ *  starting from `offset`
+ * 
+ * ASSUMPTIONS :
+ * - `buffer` can contain `size` bytes + 1
+ * 
+ * @params
+ * @param pathname The file's name and path (e.g. /tmp/file.txt)
+ * @param buffer   The buffer to store the file bytes in
+ * @param size     How many bytes to copy from the file into the buffer
+ * @param offset   The absolute offset to start reading from.
+ * 
+ * @returns
+ * - The number of bytes read on success. (Can be 0 if buffer == 0)
+ * - -1 on failure
+ */
+int fh_ReadBytesFromFile
+(char const * __restrict const pathname,
+ void * __restrict const buffer,
+ unsigned int const size,
+ unsigned int const offset);
+
+/** Copy the whole file contents into buffer
+*
+* ASSUMPTIONS :
+* - 'buffer' can contain the whole file
+*
+* CAUTION :
+* - If there's not enough space in buffer, this procedure will most
+*   likely generate a SIGSEGV or, worse, corrupt the memory.
+* - This function returns either 0 or 1. Not -1 !
+*
+* PARAMS :
+* @param pathname The file's path in the Assets archive.
+* @param buffer   The buffer to store the file's content in.
+*
+* @returns
+* - 1 if the whole copy was done successfully
+* - 0 otherwise
+*/
 unsigned int fh_WholeFileToBuffer
-(char const * __restrict const filepath,
+(char const * __restrict const pathname,
  void * __restrict const buffer);
 
-unsigned int fh_ReadBytesFromFile
-(char const * __restrict const name,
- void * __restrict const buffer,
- unsigned int const offset,
- unsigned int const size);
 
 #endif

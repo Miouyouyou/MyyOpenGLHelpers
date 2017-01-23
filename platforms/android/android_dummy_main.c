@@ -28,7 +28,6 @@
 #include "android_native_app_glue.h"
 
 #include <EGL/egl.h>
-#include <egl_common/myy_eglattrs.h>
 
 #include <sys/syscall.h>
 #include <sys/types.h>
@@ -41,6 +40,7 @@
 #include <unistd.h>
 
 #include <myy.h>
+#include <myy/egl_common/myy_eglattrs.h>
 
 #ifdef DEBUG
 #define LOGI(...) ((void)__android_log_print(ANDROID_LOG_INFO, "native-activity", __VA_ARGS__))
@@ -107,7 +107,7 @@ static int add_egl_context_to
   ANativeWindow_setBuffersGeometry(window, 0, 0, format);
 
   surface = eglCreateWindowSurface(display, config, window, NULL);
-  context = eglCreateContext(display, config, NULL, GiveMeGLES2);
+  context = eglCreateContext(display, config, NULL, contextAttribs);
 
   if (eglMakeCurrent(display, surface, surface, context) == EGL_FALSE)
     return -1;

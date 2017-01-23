@@ -28,11 +28,6 @@
 #define sh_pointToNextString(contiguous_strings) while (*contiguous_strings++)
 #include <stdint.h>
 
-static unsigned int myy_string_size(const uint8_t * const string) {
-	unsigned int c = 0;
-	for(; string[c] != 0; c++);
-	return c;
-}
 /** Store the UTF-8 sequence corresponding to the provided UTF-32
  *  codepoint in the provided string.
  *

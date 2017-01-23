@@ -74,7 +74,7 @@ int glhLoadShader
 
   LOG("Shader : %s - Type : %d\n", name, shaderType);
   GLuint shader = glCreateShader(shaderType);
-  LOG("Loading shader : %s - glCreateShader : %d\n", name, (GLchar *) shader);
+  LOG("Loading shader : %s - glCreateShader : %d\n", name, shader);
   GLuint ok = 0;
 
   if (shader) {

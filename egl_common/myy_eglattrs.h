@@ -26,9 +26,16 @@
 
 #include <EGL/egl.h>
 
+#ifdef EGL_OPENGL_ES3_BIT
+#define MYY_GLES3_BIT EGL_OPENGL_ES3_BIT
+#else
+#include <EGL/eglext.h>
+#define MYY_GLES3_BIT EGL_OPENGL_ES3_BIT_KHR
+#endif
+
 #define MYY_EGL_COMMON_PC_ATTRIBS \
 	EGL_SURFACE_TYPE, EGL_WINDOW_BIT,   \
-	EGL_CONFORMANT, EGL_OPENGL_ES3_BIT, \
+	EGL_CONFORMANT, MYY_GLES3_BIT, \
 	EGL_SAMPLES,         4, \
 	EGL_RED_SIZE,        5, \
 	EGL_GREEN_SIZE,      6, \
