@@ -25,7 +25,7 @@
 #define MYY_HELPERS_OPENGL 1
 
 #include <GLES3/gl3.h>
-#include <helpers/struct.h>
+#include <myy/helpers/struct.h>
 
 struct point_2D { GLfloat x, y; } __PALIGN__;
 struct point_3D { GLfloat x, y, z; } __PALIGN__;
@@ -168,35 +168,35 @@ struct textures {
 #define GL_PROGRAM_PROBLEMS 1
 
 int glhLoadShader
-(GLenum const shaderType, char const * restrict const name,
+(GLenum const shaderType, char const * __restrict const name,
  GLuint const program);
 
-GLuint glhSetupProgram(
-  char const * restrict const vsh_filename,
-  char const * restrict const fsh_filename,
-  uint8_t const n_attributes,
-  char const * const attributes_names);
+GLuint glhSetupProgram
+(char const * __restrict const vsh_filename,
+ char const * __restrict const fsh_filename,
+ uint8_t const n_attributes,
+ char const * const attributes_names);
 
 GLuint glhSetupAndUse
-(char const * restrict const vsh_filename,
- char const * restrict const fsh_filename,
- uint8_t n_attributes, char const * restrict const attributes_names);
+(char const * __restrict const vsh_filename,
+ char const * __restrict const fsh_filename,
+ uint8_t n_attributes, char const * __restrict const attributes_names);
 
 void glhUploadTextures
-(char const * restrict const textures_names, const int n,
- GLuint * restrict const texid);
+(char const * __restrict const textures_names, const int n,
+ GLuint * __restrict const texid);
 
 void glhActiveTextures
-(GLuint const * restrict const texids, int const n_textures);
+(GLuint const * __restrict const texids, int const n_textures);
 
 void copy_quad_to_offseted_layered_quad
-(GLfloat * restrict const card_copy_coords,
- GLfloat const * restrict const model_coords,
+(GLfloat * __restrict const card_copy_coords,
+ GLfloat const * __restrict const model_coords,
  GLfloat x_offset, GLfloat y_offset, GLfloat z_layer);
 
 void copy_quad_to_scaled_offseted_layered_quad
-(GLfloat * restrict const card_copy_coords, 
- GLfloat const * restrict model_coords,
+(GLfloat * __restrict const card_copy_coords, 
+ GLfloat const * __restrict model_coords,
  GLfloat x_offset, GLfloat y_offset, GLfloat z_layer, GLfloat scale);
 
 

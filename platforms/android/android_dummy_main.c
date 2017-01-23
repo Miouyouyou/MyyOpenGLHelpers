@@ -67,8 +67,8 @@ AAssetManager *myy_assets_manager;
  */
 static int add_egl_context_to
 (NativeWindowType const window,
- struct egl_elements * restrict const e,
- struct current_window * restrict const window_infos) {
+ struct egl_elements * __restrict const e,
+ struct current_window * __restrict const window_infos) {
   // initialize OpenGL ES and EGL
 
   /*
@@ -81,6 +81,12 @@ static int add_egl_context_to
   EGLConfig config;
   EGLSurface surface;
   EGLContext context;
+	EGLint eglAttribs[] = {
+		MYY_EGL_COMMON_MOBILE_ATTRIBS,
+		EGL_NONE, EGL_NONE
+	};
+	EGLint contextAttribs[] =
+		{ MYY_CURRENT_GL_CONTEXT, EGL_NONE, EGL_NONE };
 
   EGLDisplay display = eglGetDisplay(EGL_DEFAULT_DISPLAY);
 
@@ -278,7 +284,7 @@ struct android_calling_kit {
 };
 
 struct android_calling_kit prepare_java_call
-(const ANativeActivity * restrict const android_activity) {
+(const ANativeActivity * __restrict const android_activity) {
 
   // "This member (clazz) is mis-named. It should really be named
   //  'activity' instead of 'clazz', since it's a reference to the
@@ -305,7 +311,7 @@ struct android_calling_kit prepare_java_call
 
   return j;
 }
-void myy_open_website(const char * restrict const url) {
+void myy_open_website(const char * __restrict const url) {
 
   LOGW("[myy_open_website] !!");
   struct android_calling_kit android =
