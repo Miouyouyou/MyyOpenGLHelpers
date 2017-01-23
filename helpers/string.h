@@ -29,9 +29,33 @@
 #include <stdint.h>
 
 static unsigned int myy_string_size(const uint8_t * const string) {
-  unsigned int c = 0;
-  for(; string[c] != 0; c++);
-  return c;
+	unsigned int c = 0;
+	for(; string[c] != 0; c++);
+	return c;
+}
+/** Store the UTF-8 sequence corresponding to the provided UTF-32
+ *  codepoint in the provided string.
+ *
+ * If you have an UTF-8 terminal, you can then just do :
+ *   char string[5] = {0};
+ *   utf32_to_utf8_string(L'真', string);
+ *   printf("%s\n", string);
+ *
+ * WARNING: This assumes that you can store at least 4 bytes in
+ *          the address identified by 'string'.
+ *          This also assumes a little-endian system.
+ *          Not tested on a Big Endian system.
+ *
+ * @param code   The UTF-32 codepoint to convert
+ * @param string The byte array where the UTF-8 sequence will be
+ *               stored
+ */
+void utf32_to_utf8_string(uint32_t code, char * string);
+
+static inline unsigned int myy_string_size(const uint8_t * const string) {
+	unsigned int c = 0;
+	for(; string[c] != 0; c++);
+	return c;
 }
 
 #endif

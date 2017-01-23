@@ -22,7 +22,8 @@
 */
 
 #include <myy.h>
-#include <helpers/log.h>
+#include <myy/helpers/log.h>
+#include <myy/helpers/string.h>
 #include <stdlib.h>
 #include <string.h>
 #include "init_window.h"

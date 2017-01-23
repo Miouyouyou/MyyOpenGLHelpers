@@ -27,13 +27,13 @@
 #include <stdint.h>
 
 unsigned int fh_ReadFileToBuffer
-(char const * restrict const name,
- void * restrict const buffer,
+(char const * __restrict const name,
+ void * __restrict const buffer,
  const unsigned int size);
 
 unsigned int fh_ReadFileToStringBuffer
-(char const * restrict const name,
- void * restrict const buffer,
+(char const * __restrict const name,
+ void * __restrict const buffer,
  const unsigned int size);
 
 /** Copy the whole file contents into buffer, using the AssetsManager
@@ -56,7 +56,13 @@ unsigned int fh_ReadFileToStringBuffer
  * 0 otherwise
  */
 unsigned int fh_WholeFileToBuffer
-(char const * restrict const filepath,
- void * restrict const buffer);
+(char const * __restrict const filepath,
+ void * __restrict const buffer);
+
+unsigned int fh_ReadBytesFromFile
+(char const * __restrict const name,
+ void * __restrict const buffer,
+ unsigned int const offset,
+ unsigned int const size);
 
 #endif

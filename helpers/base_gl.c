@@ -23,10 +23,10 @@
 
 #include <GLES3/gl3.h>
 
-#include <helpers/base_gl.h>
-#include <helpers/file.h>
-#include <helpers/string.h>
-#include <helpers/log.h>
+#include <myy/helpers/base_gl.h>
+#include <myy/helpers/file.h>
+#include <myy/helpers/string.h>
+#include <myy/helpers/log.h>
 
 #include <sys/types.h> // read, write, fstat, open
 #include <sys/stat.h> // fstat, open
@@ -61,7 +61,7 @@ static int check_if_ok
   if (ok == GL_TRUE) return ok;
 
   int written = 0;
-  gheckup.log(element, SCRATCH_SPACE, &written, scratch);
+  gheckup.log(element, SCRATCH_SPACE, &written, (GLchar *) scratch);
   scratch[written] = 0;
   LOG("Problem was : %s\n", scratch);
 
@@ -74,13 +74,13 @@ int glhLoadShader
 
   LOG("Shader : %s - Type : %d\n", name, shaderType);
   GLuint shader = glCreateShader(shaderType);
-  LOG("Loading shader : %s - glCreateShader : %d\n", name, shader);
+  LOG("Loading shader : %s - glCreateShader : %d\n", name, (GLchar *) shader);
   GLuint ok = 0;
 
   if (shader) {
     LOG("Shader %s seems ok...\n", name);
     fh_ReadFileToStringBuffer(name, scratch, SCRATCH_SPACE);
-    const char *pSource = scratch;
+    const char *pSource = (GLchar *) scratch;
     glShaderSource(shader, 1, &pSource, NULL);
     glCompileShader(shader);
     ok = check_if_ok(shader, GL_SHADER_PROBLEMS);
@@ -92,10 +92,10 @@ int glhLoadShader
 }
 
 GLuint glhSetupProgram
-(char const * restrict const vsh_filename,
- char const * restrict const fsh_filename,
+(char const * __restrict const vsh_filename,
+ char const * __restrict const fsh_filename,
  uint8_t const n_attributes,
- char const * restrict const attributes_names) {
+ char const * __restrict const attributes_names) {
   GLuint p = glCreateProgram();
 
   /* Shaders */
@@ -119,22 +119,23 @@ GLuint glhSetupProgram
 }
 
 GLuint glhSetupAndUse
-(char const * restrict const vsh_filename,
- char const * restrict const fsh_filename,
+(char const * __restrict const vsh_filename,
+ char const * __restrict const fsh_filename,
  uint8_t n_attributes,
- char const * restrict const attributes_names) {
+ char const * __restrict const attributes_names) {
   GLuint p =
     glhSetupProgram(vsh_filename, fsh_filename, n_attributes, attributes_names);
   glUseProgram(p);
-  return p;
+	return p;
 }
 
+/* TODO : This must be customised */
 static void setupTexture() {
   glGenerateMipmap(GL_TEXTURE_2D);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 }
 
 /** Create n textures buffers and upload the content of
@@ -164,8 +165,8 @@ static void setupTexture() {
  * multi-texturing.
  */
 void glhUploadTextures
-(char const * restrict const textures_names, int const n,
- GLuint * restrict const texid) {
+(char const * __restrict const textures_names, int const n,
+ GLuint * __restrict const texid) {
   /* OpenGL 2.x way to load textures is certainly NOT intuitive !
    * From what I understand :
    * - The current activated texture unit is changed through
@@ -192,16 +193,29 @@ void glhUploadTextures
 
     if (fh_WholeFileToBuffer(current_name, scratch)) {
 
-      uint32_t
-        width     = ((uint32_t *) scratch)[0],
-        height    = ((uint32_t *) scratch)[1],
-        gl_format = ((uint32_t *) scratch)[2],
-        gl_type   = ((uint32_t *) scratch)[3];
+			enum header_structure {
+				hdr_width, hdr_height, hdr_target, hdr_format, hdr_type,
+				hdr_alignment, hdr_end
+			};
 
-      glBindTexture(GL_TEXTURE_2D, texid[i]);
-      glPixelStorei(GL_UNPACK_ALIGNMENT, 2);
-      glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0,
-                   gl_format, gl_type, (uint32_t *) scratch+4);
+      uint32_t
+			  width     = ((uint32_t *) scratch)[hdr_width],
+			  height    = ((uint32_t *) scratch)[hdr_height],
+			  gl_target = ((uint32_t *) scratch)[hdr_target],
+			  gl_format = ((uint32_t *) scratch)[hdr_format],
+			  gl_type   = ((uint32_t *) scratch)[hdr_type],
+			  alignment = ((uint32_t *) scratch)[hdr_alignment];
+
+
+			glBindTexture(gl_target, texid[i]);
+			glPixelStorei(GL_UNPACK_ALIGNMENT, alignment);
+			LOG("glPixelStorei(%d)\n"
+			    "glTexImage2D(%d, %d, %d, %d, %d, %d, %d, %d, %p)\n",
+			    alignment,
+			    gl_target, 0, gl_format, width, height, 0, gl_format,
+			    gl_type, (uint32_t *) scratch+hdr_end);
+			glTexImage2D(gl_target, 0, gl_format, width, height, 0,
+			             gl_format, gl_type, (uint32_t *) scratch+hdr_end);
       setupTexture();
       sh_pointToNextString(current_name);
 
@@ -237,18 +251,18 @@ void glhActiveTextures
 }
 
 void copy_quad_to_offseted_layered_quad
-(GLfloat * restrict const card_copy_coords, 
- GLfloat const * restrict const model_coords,
+(GLfloat * __restrict const card_copy_coords, 
+ GLfloat const * __restrict const model_coords,
  GLfloat const x_offset, GLfloat const y_offset, 
  GLfloat const z_layer) {
 
    /*LOG("copy_coords : %p, model_coords : %p, x: %f, y: %f, z: %f\n",
        card_copy_coords, model_coords, x_offset, y_offset, z_layer);*/
 
-  two_tris_quad const * restrict const mdl = 
-    (two_tris_quad const * restrict ) model_coords;
-  two_layered_tris_quad * restrict const c_copy = 
-    (two_layered_tris_quad * restrict ) card_copy_coords;
+  two_tris_quad const * __restrict const mdl = 
+    (two_tris_quad const * __restrict ) model_coords;
+  two_layered_tris_quad * __restrict const c_copy = 
+    (two_layered_tris_quad * __restrict ) card_copy_coords;
 
   for (int i = 0; i < two_triangles_corners; i ++) {
     c_copy->points[i].x = mdl->points[i].x + x_offset;
@@ -266,17 +280,17 @@ void copy_quad_to_offseted_layered_quad
 }
 
 void copy_quad_to_scaled_offseted_layered_quad
-(GLfloat * restrict const card_copy_coords, 
- GLfloat const * restrict const model_coords,
+(GLfloat * __restrict const card_copy_coords, 
+ GLfloat const * __restrict const model_coords,
  GLfloat const x_offset, GLfloat const y_offset, 
  GLfloat const z_layer, GLfloat const scale) {
 
   LOG("copy_coords : %p, model_coords : %p, x: %f, y: %f, z: %f, scale: %f\n",
        card_copy_coords, model_coords, x_offset, y_offset, z_layer, scale);
-  two_tris_quad const * restrict const mdl = 
-    (two_tris_quad const * restrict ) model_coords;
-  two_layered_tris_quad * restrict const c_copy = 
-    (two_layered_tris_quad * restrict ) card_copy_coords;
+  two_tris_quad const * __restrict const mdl = 
+    (two_tris_quad const * __restrict ) model_coords;
+  two_layered_tris_quad * __restrict const c_copy = 
+    (two_layered_tris_quad * __restrict ) card_copy_coords;
 
   for (int i = 0; i < two_triangles_corners; i ++) {
     c_copy->points[i].x = mdl->points[i].x * scale + x_offset;

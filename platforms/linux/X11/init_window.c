@@ -38,7 +38,7 @@ struct _escontext ESContext = {
 #define FALSE 0
 
 void CreateNativeWindow
-(const char * restrict const title, const int width, const int height)
+(const char * __restrict const title, const int width, const int height)
 {
   Window root;
   XSetWindowAttributes swa;
@@ -137,21 +137,14 @@ EGLBoolean CreateEGLContext ()
    EGLContext context;
    EGLSurface surface;
    EGLConfig config;
-   EGLint fbAttribs[] =  {
-     EGL_SURFACE_TYPE, EGL_WINDOW_BIT,
-     EGL_CONFORMANT, EGL_OPENGL_ES3_BIT,
-     EGL_SAMPLES,         4,
-     EGL_RED_SIZE,        8,
-     EGL_GREEN_SIZE,      8,
-     EGL_BLUE_SIZE,       8,
-     EGL_ALPHA_SIZE,      8,
-     EGL_DEPTH_SIZE,     16,
-     EGL_NONE
+   EGLint eglAttribs[] =  {
+     MYY_EGL_COMMON_PC_ATTRIBS,
+     EGL_NONE, EGL_NONE
    };
    /* The system can clearly provide you a OpenGL ES 2.x compliant
       configuration without OpenGL ES 2.x enabled ! */
    EGLint contextAttribs[] =
-     { EGL_CONTEXT_CLIENT_VERSION, 3, EGL_NONE, EGL_NONE };
+     { MYY_CURRENT_GL_CONTEXT, EGL_NONE, EGL_NONE };
 
    EGLDisplay display = eglGetDisplay( ESContext.native_display );
    if ( display == EGL_NO_DISPLAY ) return EGL_FALSE;
@@ -166,7 +159,7 @@ EGLBoolean CreateEGLContext ()
      return EGL_FALSE;
 
    // Choose config
-   if ( (eglChooseConfig(display, fbAttribs,
+   if ( (eglChooseConfig(display, eglAttribs,
                          &config, 1, &numConfigs) != EGL_TRUE)
        || (numConfigs != 1))
      return EGL_FALSE;
@@ -199,7 +192,7 @@ void RefreshWindow() {
 }
 
 EGLBoolean CreateWindowWithEGLContext
-(const char * restrict const title,
+(const char * __restrict const title,
  const int width, const int height) {
   CreateNativeWindow(title, width, height);
   return CreateEGLContext();

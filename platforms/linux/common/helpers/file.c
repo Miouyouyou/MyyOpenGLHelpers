@@ -21,7 +21,7 @@
 	SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-#include <helpers/file.h>
+#include <myy/helpers/file.h>
 
 /* read - close */
 #include <unistd.h>
@@ -32,8 +32,8 @@
 #include <fcntl.h>
 
 unsigned int fh_WholeFileToBuffer
-(const char * restrict const filepath,
- void * restrict const buffer) {
+(const char * __restrict const filepath,
+ void * __restrict const buffer) {
 
   ssize_t bytes_read;
   off_t file_size;
@@ -57,9 +57,9 @@ unsigned int fh_WholeFileToBuffer
 }
 
 unsigned int fh_ReadFileToBuffer
-(const char * restrict const name, 
- void * restrict const buffer, 
- const unsigned int size) {
+(char const * __restrict const name,
+ void * __restrict const buffer, 
+ unsigned int const size) {
 
   int fd = open(name, O_RDONLY);
   int bytes_read = read(fd, buffer, size);
@@ -69,9 +69,9 @@ unsigned int fh_ReadFileToBuffer
 }
 
 unsigned int fh_ReadFileToStringBuffer
-(const char * restrict const name, 
- void * restrict const buffer, 
- const unsigned int size) {
+(char const * __restrict const name,
+ void * __restrict const buffer, 
+ unsigned int const size) {
 
   unsigned int bytes_read = fh_ReadFileToBuffer(name, buffer, size);
   ((uint8_t *) buffer)[bytes_read] = 0;
@@ -79,3 +79,19 @@ unsigned int fh_ReadFileToStringBuffer
 
 }
 
+unsigned int fh_ReadBytesFromFile
+(char const * __restrict const name,
+ void * __restrict const buffer,
+ unsigned int const offset,
+ unsigned int const size) {
+
+	int bytes_read = 0;
+	int fd = open(name, O_RDONLY);
+	if (fd != -1) {
+		lseek(fd, offset, SEEK_SET);
+		bytes_read = read(fd, buffer, size);
+		close(fd);
+	}
+	return bytes_read;
+
+}
