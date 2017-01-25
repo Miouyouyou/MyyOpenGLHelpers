@@ -47,6 +47,8 @@
 #include <myy.h>
 #include <myy/egl_common/myy_eglattrs.h>
 
+#include "myy_evdev.h"
+
 #define ARRAY_SIZE(arr) (sizeof(arr) / sizeof((arr)[0]))
 
 
@@ -432,10 +434,12 @@ int main(int argc, char *argv[])
 
 	myy_generate_new_state();
 	myy_init_drawing();
+	struct myy_evdev_data evdev_data;
+	myy_init_input_devices(&evdev_data, 1);
 	while (1) {
 		struct gbm_bo *next_bo;
 		int waiting_for_flip = 1;
-
+		myy_evdev_read_input(&evdev_data);
 		myy_draw();
 
 		eglSwapBuffers(egl.display, egl.surface);
@@ -477,5 +481,6 @@ int main(int argc, char *argv[])
 	}
 
 program_end:
+	myy_free_input_devices(&evdev_data, 1);
 	return ret;
 }
