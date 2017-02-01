@@ -24,8 +24,6 @@
 #ifndef MYY_LOG_H
 #define MYY_LOG_H 1
 
-#include <string.h>
-
 #if defined(DEBUG)
 #if defined(__ANDROID__)
 
@@ -36,6 +34,8 @@
 #else
 
 #include <stdio.h>
+#include <string.h>
+#include <errno.h>
 #define LOG(...) fprintf(stderr, __VA_ARGS__)
 #define LOG_ERRNO(...)  fprintf(stderr, "Error : %s\n", strerror(errno)); fprintf(stderr, __VA_ARGS__)
 

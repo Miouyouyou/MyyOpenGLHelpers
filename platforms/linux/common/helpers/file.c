@@ -22,6 +22,7 @@
 */
 
 #include <myy/helpers/file.h>
+#include <myy/helpers/log.h>
 
 /* read - close */
 #include <unistd.h>
@@ -31,15 +32,18 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 
+/* mmap */
+#include <sys/mman.h>
+
 unsigned int fh_WholeFileToBuffer
-(const char * __restrict const filepath,
+(const char * __restrict const pathname,
  void * __restrict const buffer) {
 
 	ssize_t bytes_read;
 	off_t file_size;
 	struct stat fd_stats;
 
-	int fd = open(filepath, O_RDONLY);
+	int fd = open(pathname, O_RDONLY);
 
 	if (fd != -1) {
 
@@ -53,30 +57,34 @@ unsigned int fh_WholeFileToBuffer
 		return bytes_read == file_size;
 
 	}
-	else return 0;
+	else {
+		LOG_ERRNO("Could not open %s\n", pathname);
+		return 0;
+	}
 }
 
 int fh_ReadFileToBuffer
-(char const * __restrict const name,
+(char const * __restrict const pathname,
  void * __restrict const buffer, 
  unsigned int const size) {
 
 	int bytes_read = -1;
-	int fd = open(name, O_RDONLY);
+	int fd = open(pathname, O_RDONLY);
 	if (fd != -1) {
 		bytes_read = read(fd, buffer, size);
 		close(fd);
 	}
+	else { LOG_ERRNO("Could not open %s\n", pathname); }
 	return bytes_read;
 
 }
 
 int fh_ReadFileToStringBuffer
-(char const * __restrict const name,
+(char const * __restrict const pathname,
  void * __restrict const buffer, 
  unsigned int const size) {
 
-	int bytes_read = fh_ReadFileToBuffer(name, buffer, size);
+	int bytes_read = fh_ReadFileToBuffer(pathname, buffer, size);
 	if (bytes_read != -1)
 		((uint8_t *) buffer)[bytes_read] = 0;
 
@@ -98,6 +106,47 @@ int fh_ReadBytesFromFile
 		bytes_read = read(fd, buffer, size);
 		close(fd);
 	}
+	else { LOG_ERRNO("Could not open %s\n", pathname); }
 	return bytes_read;
 
+}
+
+struct myy_fh_map_handle fh_MapFileToMemory
+(char const * __restrict const pathname)
+{
+	LOG("[fh_MapFileToMemory]\n");
+	LOG("  pathname : %s\n", pathname);
+	int fd = open(pathname, O_RDONLY);
+	void * mapped_address = MAP_FAILED;
+	off_t file_size = 0;
+	unsigned int ok = 0;
+
+	if (fd != 1) {
+		struct stat file_stats;
+		fstat(fd, &file_stats);
+		file_size = file_stats.st_size;
+		LOG("  mmap(0, %lu, PROT_READ, MAP_PRIVATE, %d)\n",
+		     file_size, fd);
+		mapped_address =
+		  mmap(0, file_stats.st_size, PROT_READ, MAP_PRIVATE, fd, 0);
+		ok = (mapped_address != MAP_FAILED);
+		LOG("  mapped_address : %p - Ok ? %d\n", mapped_address, ok);
+		close(fd);
+	}
+
+	if (ok == 0) {
+		LOG_ERRNO("  Could not map file %s to memory\n", pathname);
+	}
+
+	struct myy_fh_map_handle handle = {
+		.ok      = ok,
+		.address = mapped_address,
+		.length  = (int) file_size
+	};
+	return handle;
+}
+
+void fh_UnmapFileFromMemory
+(struct myy_fh_map_handle const handle) {
+	if (handle.ok) munmap(handle.address, handle.length);
 }

@@ -1,5 +1,5 @@
 /*
-  Copyright (c) 2016 Miouyouyou <Myy>
+	Copyright (c) 2017 Miouyouyou <Myy>
 
   Permission is hereby granted, free of charge, to any person obtaining
   a copy of this software and associated documentation files 
@@ -24,32 +24,41 @@
 #ifndef MYY_HELPERS_OPENGL
 #define MYY_HELPERS_OPENGL 1
 
-#include <GLES3/gl3.h>
+#include <myy/current/opengl.h>
 #include <myy/helpers/struct.h>
+#include <myy/helpers/log.h>
 
 struct point_2D { GLfloat x, y; } __PALIGN__;
 struct point_3D { GLfloat x, y, z; } __PALIGN__;
 struct triangle_2D { struct point_2D a, b, c; } __PALIGN__;
 struct layered_triangle_2D { struct point_3D a, b, c; } __PALIGN__;
-struct two_triangles_quad_2D { struct triangle_2D first, second; } __PALIGN__;
-struct two_layered_triangles_quad_2D { struct layered_triangle_2D first, second; } __PALIGN__;
+struct two_triangles_quad_2D {
+	struct triangle_2D first, second;
+} __PALIGN__;
+struct two_layered_triangles_quad_2D {
+	struct layered_triangle_2D first, second;
+} __PALIGN__;
 
 struct textured_point_2D { GLfloat x, y, s, t; } __PALIGN__;
 struct textured_point_3D { GLfloat x, y, z, s, t; } __PALIGN__;
-struct textured_triangle_2D { struct textured_point_2D a, b, c; } __PALIGN__;
-struct textured_layered_triangle_2D { struct textured_point_3D a, b, c; } __PALIGN__;
+struct textured_triangle_2D {
+	struct textured_point_2D a, b, c;
+} __PALIGN__;
+struct textured_layered_triangle_2D {
+	struct textured_point_3D a, b, c;
+} __PALIGN__;
 struct two_triangles_textured_quad_2D {
-  struct textured_triangle_2D first, second;
+	struct textured_triangle_2D first, second;
 } __PALIGN__;
 struct two_textured_layered_triangles_quad {
-  struct textured_layered_triangle_2D first, second;
+	struct textured_layered_triangle_2D first, second;
 } __PALIGN__;
 
 union two_triangles_textured_quad_2D_representations {
-  struct two_triangles_textured_quad_2D quad;
-  struct textured_triangle_2D triangles[2];
-  struct textured_point_2D points[6];
-  GLfloat raw_coords[24];
+	struct two_triangles_textured_quad_2D quad;
+	struct textured_triangle_2D triangles[2];
+	struct textured_point_2D points[6];
+	GLfloat raw_coords[24];
 } __PALIGN__;
 
 union two_textured_layered_triangles_quad_representations {
@@ -164,8 +173,6 @@ struct textures {
   GLuint GLtype;
 };
 
-#define GL_SHADER_PROBLEMS 0
-#define GL_PROGRAM_PROBLEMS 1
 
 int glhLoadShader
 (GLenum const shaderType, char const * __restrict const name,

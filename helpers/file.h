@@ -109,5 +109,38 @@ unsigned int fh_WholeFileToBuffer
 (char const * __restrict const pathname,
  void * __restrict const buffer);
 
+struct myy_fh_map_handle {
+	unsigned int ok;
+	void const * address;
+	int length;
+};
+
+/**
+ * Map an entire file in memory (mmap).
+ *
+ * PARAMS :
+ * @param pathname The file's path in the Assets archive.
+ *
+ * @returns
+ * Three values packed in a struct myy_fh_map_handle data structure.
+ * This structure contains the following fields :
+ * - ok : The mapping was done successfully
+ * - address : The memory address where the file has been mapped, if
+ *             the mapping was performed successfully
+ * - handle  : An opaque handle used by fh_UnmapFileFromMemory
+ */
+struct myy_fh_map_handle fh_MapFileToMemory
+(char const * __restrict const pathname);
+
+/**
+ * Unmap a previously mapped file from the system's memory
+ *
+ * @brief fh_UnmapFileFromMemory
+ *
+ * PARAMS:
+ * @param handle The data structure returned by fh_MapFileToMemory
+ */
+void fh_UnmapFileFromMemory
+(struct myy_fh_map_handle const handle);
 
 #endif

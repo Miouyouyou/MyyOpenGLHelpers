@@ -1,5 +1,5 @@
 /*
-  Copyright (c) 2016 Miouyouyou <Myy>
+	Copyright (c) 2017 Miouyouyou <Myy>
 
   Permission is hereby granted, free of charge, to any person obtaining
   a copy of this software and associated documentation files 
@@ -21,8 +21,6 @@
   SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-#include <GLES3/gl3.h>
-
 #include <myy/helpers/base_gl.h>
 #include <myy/helpers/file.h>
 #include <myy/helpers/string.h>
@@ -34,60 +32,71 @@
 #include <stdlib.h> // exit
 #include <fcntl.h> // open
 
-
-#define SCRATCH_SPACE 3555344
-uint8_t scratch[SCRATCH_SPACE+1];
+#define GL_SHADER_PROBLEMS 0
+#define GL_PROGRAM_PROBLEMS 1
 
 static const struct gleanup cleanupMethods[] = {
-  [GL_SHADER_PROBLEMS] = {
-    .check = glGetShaderiv,
-    .verif = GL_COMPILE_STATUS,
-    .log   = glGetShaderInfoLog
-  },
-  [GL_PROGRAM_PROBLEMS] = {
-    .check = glGetProgramiv,
-    .verif = GL_LINK_STATUS,
-    .log   = glGetProgramInfoLog
-  }
+	[GL_SHADER_PROBLEMS] = {
+	  .check = glGetShaderiv,
+	  .verif = GL_COMPILE_STATUS,
+	  .log   = glGetShaderInfoLog
+	},
+	[GL_PROGRAM_PROBLEMS] = {
+	  .check = glGetProgramiv,
+	  .verif = GL_LINK_STATUS,
+	  .log   = glGetProgramInfoLog
+	}
 };
 
 static int check_if_ok
 (GLuint const element, GLuint const method_id) {
-  struct gleanup gheckup = cleanupMethods[method_id];
+	struct gleanup gheckup = cleanupMethods[method_id];
 
-  GLint ok = GL_FALSE;
-  gheckup.check(element, gheckup.verif, &ok);
+	GLint ok = GL_FALSE;
+	gheckup.check(element, gheckup.verif, &ok);
 
-  if (ok == GL_TRUE) return ok;
+	if (ok == GL_TRUE) return ok;
 
-  int written = 0;
-  gheckup.log(element, SCRATCH_SPACE, &written, (GLchar *) scratch);
-  scratch[written] = 0;
-  LOG("Problem was : %s\n", scratch);
+	int written = 0;
+	GLchar log_data[1024] = {0};
+	gheckup.log(element, 1022, &written, (GLchar *) log_data);
+	log_data[written] = 0;
+	LOG("Problem was : %s\n", log_data);
 
-  return GL_FALSE;
+	return GL_FALSE;
 }
 
 int glhLoadShader
-(GLenum const shaderType, char const * const name,
- GLuint const program) {
+(GLenum const shaderType,
+ char const * __restrict const pathname,
+ GLuint const program)
+{
 
-  LOG("Shader : %s - Type : %d\n", name, shaderType);
+	LOG("Shader : %s - Type : %d\n",
+	    pathname, shaderType);
   GLuint shader = glCreateShader(shaderType);
-  LOG("Loading shader : %s - glCreateShader : %d\n", name, shader);
+	LOG("Loading shader : %s - glCreateShader : %d\n",
+	    pathname, shader);
   GLuint ok = 0;
 
   if (shader) {
-    LOG("Shader %s seems ok...\n", name);
-    fh_ReadFileToStringBuffer(name, scratch, SCRATCH_SPACE);
-    const char *pSource = (GLchar *) scratch;
-    glShaderSource(shader, 1, &pSource, NULL);
-    glCompileShader(shader);
-    ok = check_if_ok(shader, GL_SHADER_PROBLEMS);
-    if (ok) glAttachShader(program, shader);
-    glDeleteShader(shader);
+		LOG("Shader %s seems ok...\n", pathname);
+    struct myy_fh_map_handle mapped_file_infos =
+		  fh_MapFileToMemory(pathname);
+    if (mapped_file_infos.ok) {
+			GLchar const * const * __restrict const shader_code =
+			  (GLchar const * const *) &mapped_file_infos.address;
+
+			glShaderSource(shader, 1, shader_code, &mapped_file_infos.length);
+      glCompileShader(shader);
+      ok = check_if_ok(shader, GL_SHADER_PROBLEMS);
+      if (ok) glAttachShader(program, shader);
+      glDeleteShader(shader);
+      fh_UnmapFileFromMemory(mapped_file_infos);
+    }
   }
-  LOG("Shader %s -> Status : %d\n", name, program);
+	LOG("Shader %s -> Program : %d - Status : %d\n",
+	    pathname, program, status);
   return ok;
 }
 
@@ -122,24 +131,28 @@ GLuint glhSetupAndUse
 (char const * __restrict const vsh_filename,
  char const * __restrict const fsh_filename,
  uint8_t n_attributes,
- char const * __restrict const attributes_names) {
-  GLuint p =
-    glhSetupProgram(vsh_filename, fsh_filename, n_attributes, attributes_names);
-  glUseProgram(p);
+ char const * __restrict const attributes_names)
+{
+	GLuint p =
+	  glhSetupProgram(vsh_filename, fsh_filename, n_attributes, attributes_names);
+	glUseProgram(p);
 	return p;
 }
 
+
+
 /* TODO : This must be customised */
 static void setupTexture() {
-  glGenerateMipmap(GL_TEXTURE_2D);
+	glGenerateMipmap(GL_TEXTURE_2D);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 }
 
-/** Create n textures buffers and upload the content of
- *  each \0 separated filename in "textures_names" into these buffers.
+/**
+ * Create n textures buffers and upload the content of
+ * each \0 separated filename in "textures_names" into these buffers.
  *
  * Example :
  * GLuint textures_id[2];
@@ -166,66 +179,67 @@ static void setupTexture() {
  */
 void glhUploadTextures
 (char const * __restrict const textures_names, int const n,
- GLuint * __restrict const texid) {
-  /* OpenGL 2.x way to load textures is certainly NOT intuitive !
-   * From what I understand :
-   * - The current activated texture unit is changed through
-   *   glActiveTexture.
-   * - glGenTextures will generate names for textures *storage* units.
-   * - glBindTexture will bind the current *storage* unit to the current
-   *   activated texture unit and, on the first time, will define the
-   *   current *storage* unit parameters.
-   *   Example : This storage unit must store GL_TEXTURE_2D textures.
-   * - glTexImage2D will upload the provided data in the texture *storage* unit
-   *   bound to the current texture unit.
-   */
+ GLuint * __restrict const texid)
+{
+	/* OpenGL way to load textures is certainly NOT intuitive !
+	 * From what I understand :
+	 * - The current activated texture unit is changed through
+	 *   glActiveTexture.
+	 * - glGenTextures will generate names for textures *storage* units.
+	 * - glBindTexture will bind the current *storage* unit to the current
+	 *   activated texture unit and, on the first time, will define the
+	 *   current *storage* unit parameters.
+	 *   Example : This storage unit must store GL_TEXTURE_2D textures.
+	 * - glTexImage2D will upload the provided data in the texture
+	 *   *storage* unit
+	 *   bound to the current texture unit.
+	 */
 
-  glGenTextures(n, texid);
+	glGenTextures(n, texid);
 
-  const char *current_name = textures_names;
+	const char *current_name = textures_names;
 
-  for (int i = 0; i < n; i++) {
-    /* glTexImage2D
-       Specifies a two-dimensional or cube-map texture for the current
-       texture unit, specified with glActiveTexture. */
+	for (int i = 0; i < n; i++) {
+		/* glTexImage2D
+			 Specifies a two-dimensional or cube-map texture for the current
+			 texture unit, specified with glActiveTexture. */
 
-    LOG("Loading texture : %s\n", current_name);
+		LOG("Loading texture : %s\n", current_name);
+		struct myy_fh_map_handle mapped_file_infos =
+		  fh_MapFileToMemory(current_name);
+		if (mapped_file_infos.ok) {
 
-    if (fh_WholeFileToBuffer(current_name, scratch)) {
+			struct myy_raw_texture_content const * const tex =
+			  (struct myy_raw_texture_content const *)
+				mapped_file_infos.address;
 
-			enum header_structure {
-				hdr_width, hdr_height, hdr_target, hdr_format, hdr_type,
-				hdr_alignment, hdr_end
-			};
+			glBindTexture(tex->myy_target, texid[i]);
+			glPixelStorei(GL_UNPACK_ALIGNMENT, tex->alignment);
+			LOG(
+			  "glPixelStorei(%d)\n"
+			  "glTexImage2D(%d, %d, %d, %d, %d, %d, %d, %d, %p)\n",
+			  tex->alignment,
+			  tex->myy_target, 0, tex->myy_format,
+			  tex->width, tex->height, 0,
+			  tex->myy_format, tex->myy_type, tex->data
+			);
+			glTexImage2D(
+			  tex->myy_target, 0, tex->myy_format,
+			  tex->width, tex->height, 0,
+			  tex->myy_format, tex->myy_type, tex->data
+			);
+			setupTexture();
 
-      uint32_t
-			  width     = ((uint32_t *) scratch)[hdr_width],
-			  height    = ((uint32_t *) scratch)[hdr_height],
-			  gl_target = ((uint32_t *) scratch)[hdr_target],
-			  gl_format = ((uint32_t *) scratch)[hdr_format],
-			  gl_type   = ((uint32_t *) scratch)[hdr_type],
-			  alignment = ((uint32_t *) scratch)[hdr_alignment];
-
-
-			glBindTexture(gl_target, texid[i]);
-			glPixelStorei(GL_UNPACK_ALIGNMENT, alignment);
-			LOG("glPixelStorei(%d)\n"
-			    "glTexImage2D(%d, %d, %d, %d, %d, %d, %d, %d, %p)\n",
-			    alignment,
-			    gl_target, 0, gl_format, width, height, 0, gl_format,
-			    gl_type, (uint32_t *) scratch+hdr_end);
-			glTexImage2D(gl_target, 0, gl_format, width, height, 0,
-			             gl_format, gl_type, (uint32_t *) scratch+hdr_end);
-      setupTexture();
-      sh_pointToNextString(current_name);
-
-    }
-    else {
-      LOG("You're sure about that file : %s ?\n", current_name);
-      exit(1);
-    }
-  }
+			fh_UnmapFileFromMemory(mapped_file_infos);
+			sh_pointToNextString(current_name);
+		}
+		else {
+			LOG("You're sure about that file : %s ?\n", current_name);
+			exit(1);
+		}
+	}
 }
+
 
 /**
  * Activate and bind the provided textures, in order.
@@ -256,9 +270,6 @@ void copy_quad_to_offseted_layered_quad
  GLfloat const x_offset, GLfloat const y_offset, 
  GLfloat const z_layer) {
 
-   /*LOG("copy_coords : %p, model_coords : %p, x: %f, y: %f, z: %f\n",
-       card_copy_coords, model_coords, x_offset, y_offset, z_layer);*/
-
   two_tris_quad const * __restrict const mdl = 
     (two_tris_quad const * __restrict ) model_coords;
   two_layered_tris_quad * __restrict const c_copy = 
@@ -270,11 +281,7 @@ void copy_quad_to_offseted_layered_quad
     c_copy->points[i].z = z_layer;
     c_copy->points[i].s = mdl->points[i].s;
     c_copy->points[i].t = mdl->points[i].t;
-    /*LOG("copy_coords[%d] : x: %f, y: %f, z: %f, s: %f, t: %f\n",
-        i, c_copy->points[i].x, c_copy->points[i].y, c_copy->points[i].z,
-        c_copy->points[i].s, c_copy->points[i].t);
-    LOG("model_coords[%d] : x: %f, y: %f, s: %f, t: %f\n",
-        i, mdl->points[i].x, mdl->points[i].y, mdl->points[i].s, mdl->points[i].t);*/
+
   }
 
 }
