@@ -46,7 +46,7 @@ void myy_resume_state(struct myy_game_state *state);
 void myy_click(int x, int y, unsigned int button);
 void myy_doubleclick(int x, int y, unsigned int button);
 void myy_hover(int x, int y);
-void myy_move(int x, int y);
+void myy_move(int x, int y, int start_x, int start_y);
 void myy_key(unsigned int keycode);
 
 /* Temporary changes */

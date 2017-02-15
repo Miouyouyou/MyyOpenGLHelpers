@@ -31,9 +31,9 @@
 int main() {
 
   CreateWindowWithEGLContext("Nya !", 1280, 720);
-  myy_display_initialised(1280, 720);
   myy_generate_new_state();
   myy_init_drawing();
+	myy_display_initialised(1280, 720);
 
   while(!UserInterrupt()) {
     myy_draw();

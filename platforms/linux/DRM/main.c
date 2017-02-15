@@ -37,8 +37,7 @@
 #include <gbm.h>
 
 #define GL_GLEXT_PROTOTYPES 1
-#include <GLES3/gl3.h>
-#include <GLES3/gl3ext.h>
+#include <myy/current/opengl.h>
 #include <EGL/egl.h>
 #include <EGL/eglext.h>
 
@@ -434,6 +433,9 @@ int main(int argc, char *argv[])
 
 	myy_generate_new_state();
 	myy_init_drawing();
+	width  = gbm_bo_get_width(bo);
+	height = gbm_bo_get_height(bo);
+	myy_display_initialised(width, height);
 	struct myy_evdev_data evdev_data;
 	myy_init_input_devices(&evdev_data, 1);
 	while (1) {
