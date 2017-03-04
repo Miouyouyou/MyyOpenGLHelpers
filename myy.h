@@ -52,7 +52,7 @@ void myy_key(unsigned int keycode);
 /* Temporary changes */
 enum mouse_action_type { myy_mouse_wheel_action };
 
-void myy_abs_mouse_move(int x, int y);
+void myy_rel_mouse_move(int x, int y);
 void myy_mouse_action(enum mouse_action_type, int value);
 
 #endif 

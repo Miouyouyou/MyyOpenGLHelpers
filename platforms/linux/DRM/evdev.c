@@ -17,12 +17,12 @@
 #include "myy_evdev.h"
 
 static void plus_x(int code, int value) {
-	myy_abs_mouse_move(value, 0);
+	myy_rel_mouse_move(value, 0);
 	// printf("X : %d\n", value);
 }
 
 static void plus_y(int code, int value) {
-	myy_abs_mouse_move(0, -value);
+	myy_rel_mouse_move(0, -value);
 }
 
 static void plus_wheel(int code, int value) {
