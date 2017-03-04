@@ -1,4 +1,4 @@
-#include <myy/helpers/string.h>
+#include <myy/helpers/strings.h>
 
 /** Store the UTF-8 sequence corresponding to the provided UTF-32
  *  codepoint in the provided string.

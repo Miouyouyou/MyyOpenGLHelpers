@@ -36,15 +36,11 @@
 #include <xf86drmMode.h>
 #include <gbm.h>
 
-#define GL_GLEXT_PROTOTYPES 1
+#include <myy.h>
+#include <myy/helpers/log.h>
 #include <myy/current/opengl.h>
-#include <EGL/egl.h>
-#include <EGL/eglext.h>
 
 #include <assert.h>
-
-#include <myy.h>
-#include <myy/egl_common/myy_eglattrs.h>
 
 #include "myy_evdev.h"
 
@@ -76,8 +72,10 @@ struct drm_fb {
 	uint32_t fb_id;
 };
 
-static uint32_t find_crtc_for_encoder(const drmModeRes *resources,
-				      const drmModeEncoder *encoder) {
+static uint32_t find_crtc_for_encoder
+(drmModeRes const * __restrict resources,
+ drmModeEncoder const * __restrict encoder)
+{
 	int i;
 
 	for (i = 0; i < resources->count_crtcs; i++) {
@@ -86,9 +84,8 @@ static uint32_t find_crtc_for_encoder(const drmModeRes *resources,
 		 */
 		const uint32_t crtc_mask = 1 << i;
 		const uint32_t crtc_id = resources->crtcs[i];
-		if (encoder->possible_crtcs & crtc_mask) {
+		if (encoder->possible_crtcs & crtc_mask)
 			return crtc_id;
-		}
 	}
 
 	/* no match found */
@@ -105,21 +102,74 @@ static uint32_t find_crtc_for_connector
 	for (i = 0; i < connector->count_encoders; i++) {
 		const uint32_t encoder_id = connector->encoders[i];
 		drmModeEncoder *encoder =
-		  drmModeGetEncoder(drm_infos->fd, encoder_id);
+			drmModeGetEncoder(drm_infos->fd, encoder_id);
 
 		if (encoder) {
 			const uint32_t crtc_id =
-			  find_crtc_for_encoder(resources, encoder);
+				find_crtc_for_encoder(resources, encoder);
 
 			drmModeFreeEncoder(encoder);
-			if (crtc_id != 0) {
+			if (crtc_id != 0)
 				return crtc_id;
-			}
 		}
 	}
 
 	/* no match found */
 	return -1;
+}
+
+char *connector_states[] = {
+	[DRM_MODE_CONNECTED] = "Connected",
+	[DRM_MODE_DISCONNECTED] = "Disconnected",
+	[DRM_MODE_UNKNOWNCONNECTION] = "???",
+};
+
+static void print_connector_infos
+(drmModeConnector * __restrict const c, int n)
+{
+	LOG("Connector %d\n"
+	    "Connection state  : %s\n"
+	    "Connector id      : %d\n"
+	    "Connector type    : %d\n"
+	    "Connector type id : %d\n"
+	    "Encoders          : %u\n"
+	    "Modes             : %u\n"
+	    "Properties        : %u\n"
+	    "Encoder ID        : %d\n"
+	    "Height in mm      : %d\n"
+	    "Width in mm       : %d\n",
+	    n,
+	    connector_states[c->connection], 
+			c->connector_id, c->connector_type, c->connector_type_id,
+	    c->count_encoders, c->count_modes, c->count_props,
+	    c->encoder_id, c->mmHeight, c->mmWidth);
+	unsigned int n_modes = c->count_modes;
+	for (unsigned int m = 0; m < n_modes; m++) {
+		drmModeModeInfoPtr mode = c->modes+m;
+		LOG("Mode %d/%d\n"
+		    "Clock            : %d\n"
+		    "Flags            : %d\n"
+		    "Width            : %d\n"
+		    "Width Skew       : %d\n"
+		    "HSync End        : %d\n"
+		    "HSync Start      : %d\n"
+		    "Horizontal Total : %d\n"
+		    "Name             : %s\n"
+		    "Type             : %d\n"
+		    "Height           : %d\n"
+		    "Vertical Refresh : %d\n"
+		    "VScan            : %d\n"
+		    "VSync End        : %d\n"
+		    "VSync Start      : %d\n"
+		    "Vertical Total   : %d\n",
+		    m, n_modes,
+		    mode->clock, mode->flags,
+		    mode->hdisplay, mode->hskew,
+		    mode->hsync_end, mode->hsync_start, mode->htotal,
+		    mode->name, mode->type,
+		    mode->vdisplay, mode->vrefresh, mode->vscan,
+		    mode->vsync_end, mode->vsync_start, mode->vtotal);
+	}
 }
 
 static int init_drm
@@ -135,22 +185,23 @@ static int init_drm
 	fd = open("/dev/dri/card0", O_RDWR);
 
 	if (fd < 0) {
-		printf("could not open drm device\n");
+		LOG("could not open drm device\n");
 		return -1;
 	}
 
 	resources = drmModeGetResources(fd);
 	if (!resources) {
-		printf("drmModeGetResources failed: %s\n", strerror(errno));
+		LOG("drmModeGetResources failed: %s\n", strerror(errno));
 		return -1;
 	}
 
 	/* find a connected connector: */
-	printf("Connectors : %d\n", resources->count_connectors);
+	LOG("Connectors : %d\n", resources->count_connectors);
 	for (i = 0; i < resources->count_connectors; i++) {
 		connector = drmModeGetConnector(
 		  fd, resources->connectors[i]
 		);
+		print_connector_infos(connector, i);
 		if (connector->connection == DRM_MODE_CONNECTED) {
 			/* it's connected, let's use this! */
 			break;
@@ -163,7 +214,7 @@ static int init_drm
 		/* we could be fancy and listen for hotplug events and wait for
 		 * a connector..
 		 */
-		printf("no connected connector!\n");
+		LOG("no connected connector!\n");
 		return -1;
 	}
 
@@ -183,7 +234,7 @@ static int init_drm
 	}
 
 	if (!mode) {
-		printf("could not find mode!\n");
+		LOG("could not find mode!\n");
 		return -1;
 	}
 
@@ -203,7 +254,7 @@ static int init_drm
 		  resources, connector, drm_infos
 		);
 		if (crtc_id == 0) {
-			printf("no crtc found!\n");
+			LOG("no crtc found!\n");
 			return -1;
 		}
 
@@ -232,14 +283,14 @@ static int init_gbm
 
 	int ret = 0;
 	if (!gbm_infos->surface) {
-		printf("failed to create gbm surface\n");
+		LOG("failed to create gbm surface\n");
 		ret = -1;
 	}
 
 	return ret;
 }
 
-static int init_gl
+static int add_gl_context
 (struct egl_infos * const egl_infos,
  struct gbm_infos * const gbm_infos)
 {
@@ -271,32 +322,32 @@ static int init_gl
 	  get_platform_display(EGL_PLATFORM_GBM_KHR, gbm_infos->dev, NULL);
 
 	if (!eglInitialize(display, &major, &minor)) {
-		printf("failed to initialize\n");
+		LOG("failed to initialize\n");
 		return -1;
 	}
 
-	printf("Using display %p with EGL version %d.%d\n",
-			display, major, minor);
+	LOG("Using display %p with EGL version %d.%d\n",
+	   display, major, minor);
 
-	printf("EGL Version \"%s\"\n", eglQueryString(display, EGL_VERSION));
-	printf("EGL Vendor \"%s\"\n", eglQueryString(display, EGL_VENDOR));
-	printf("EGL Extensions \"%s\"\n", eglQueryString(display, EGL_EXTENSIONS));
+	LOG("EGL Version \"%s\"\n", eglQueryString(display, EGL_VERSION));
+	LOG("EGL Vendor \"%s\"\n", eglQueryString(display, EGL_VENDOR));
+	LOG("EGL Extensions \"%s\"\n", eglQueryString(display, EGL_EXTENSIONS));
 
 	if (!eglBindAPI(EGL_OPENGL_ES_API)) {
-		printf("failed to bind api EGL_OPENGL_ES_API\n");
+		LOG("failed to bind api EGL_OPENGL_ES_API\n");
 		return -1;
 	}
 
 	if (!eglChooseConfig(display, config_attribs, &config, 1, &n) || n != 1) {
-		printf("failed to choose config: %d\n", n);
+		LOG("failed to choose config: %d\n", n);
 		return -1;
 	}
 
 	context = eglCreateContext(
-	  display, config, EGL_NO_CONTEXT, context_attribs
+		display, config, EGL_NO_CONTEXT, context_attribs
 	);
 	if (context == NULL) {
-		printf("failed to create context\n");
+		LOG("failed to create context\n");
 		return -1;
 	}
 
@@ -304,14 +355,14 @@ static int init_gl
 	  display, config, gbm_infos->surface, NULL
 	);
 	if (surface == EGL_NO_SURFACE) {
-		printf("failed to create egl surface\n");
+		LOG("failed to create egl surface\n");
 		return -1;
 	}
 
 	/* connect the context to the surface */
 	eglMakeCurrent(display, surface, surface, context);
 
-	printf("GL Extensions: \"%s\"\n", glGetString(GL_EXTENSIONS));
+	LOG("GL Extensions: \"%s\"\n", glGetString(GL_EXTENSIONS));
 	egl_infos->display = display;
 	egl_infos->config  = config;
 	egl_infos->surface = surface;
@@ -360,7 +411,7 @@ static struct drm_fb * drm_fb_get_from_bo
 	  stride, handle, &fb->fb_id
 	);
 	if (ret) {
-		printf("failed to create fb: %s\n", strerror(errno));
+		LOG("failed to create fb: %s\n", strerror(errno));
 		free(fb);
 		return NULL;
 	}
@@ -386,17 +437,28 @@ int main(int argc, char *argv[])
 	struct drm_infos drm;
 	fd_set fds;
 	drmEventContext evctx = {
-		.version = DRM_EVENT_CONTEXT_VERSION,
-		.page_flip_handler = page_flip_handler,
+	  .version = DRM_EVENT_CONTEXT_VERSION,
+	  .page_flip_handler = page_flip_handler,
 	};
 	struct gbm_bo *bo;
 	struct drm_fb *fb;
 	uint32_t i = 0;
 	int ret;
 
+	/* Prepare to read input from Evdev */
+	struct myy_evdev_data evdev_data;
+	ret = myy_init_input_devices(&evdev_data, 1);
+	if (!ret) {
+		LOG("Meow ? Where's the mouse ?\n"
+		    "Mouse input device not found.\n"
+		    "Check that a mouse is plugged and you have sufficent privileges\n");
+		goto no_mouse;
+	}
+
+	/* Start to use the DRI device */
 	ret = init_drm(&drm);
 	if (ret) {
-		printf("failed to initialize DRM\n");
+		LOG("failed to initialize DRM\n");
 		goto program_end;
 	}
 
@@ -404,15 +466,17 @@ int main(int argc, char *argv[])
 	FD_SET(0, &fds);
 	FD_SET(drm.fd, &fds);
 
+	/* Generate a Generic Buffer */
 	ret = init_gbm(&drm, &gbm);
 	if (ret) {
-		printf("failed to initialize GBM\n");
+		LOG("failed to initialize GBM\n");
 		goto program_end;
 	}
 
-	ret = init_gl(&egl, &gbm);
+	/* Add an OpenGL ES context to it, using EGL */
+	ret = add_gl_context(&egl, &gbm);
 	if (ret) {
-		printf("failed to initialize EGL\n");
+		LOG("failed to initialize EGL\n");
 		goto program_end;
 	}
 
@@ -423,28 +487,34 @@ int main(int argc, char *argv[])
 	bo = gbm_surface_lock_front_buffer(gbm.surface);
 	fb = drm_fb_get_from_bo(bo, &drm);
 
+	/* Save the current CRTC configuration */
+	drmModeCrtcPtr prev_crtc = drmModeGetCrtc(drm.fd, drm.crtc_id);
 	/* set mode: */
 	ret = drmModeSetCrtc(drm.fd, drm.crtc_id, fb->fb_id, 0, 0,
-			&drm.connector_id, 1, drm.mode);
+	    &drm.connector_id, 1, drm.mode);
 	if (ret) {
-		printf("failed to set mode: %s\n", strerror(errno));
+		LOG("failed to set mode: %s\n", strerror(errno));
 		goto program_end;
 	}
 
+	/* Initialise our 'engine' */
 	myy_generate_new_state();
 	myy_init_drawing();
-	width  = gbm_bo_get_width(bo);
-	height = gbm_bo_get_height(bo);
-	myy_display_initialised(width, height);
-	struct myy_evdev_data evdev_data;
-	myy_init_input_devices(&evdev_data, 1);
+	myy_display_initialised(
+	  gbm_bo_get_width(bo),
+	  gbm_bo_get_height(bo)
+	);
 	while (1) {
 		struct gbm_bo *next_bo;
 		int waiting_for_flip = 1;
-		myy_evdev_read_input(&evdev_data);
+
+		/* Draw ! */
 		myy_draw();
 
+		/* Show ! */
 		eglSwapBuffers(egl.display, egl.surface);
+
+		/* Wait until the next VBlank */
 		next_bo = gbm_surface_lock_front_buffer(gbm.surface);
 		fb = drm_fb_get_from_bo(next_bo, &drm);
 
@@ -453,36 +523,54 @@ int main(int argc, char *argv[])
 		 * hw composition
 		 */
 
-		ret = drmModePageFlip(drm.fd, drm.crtc_id, fb->fb_id,
-				DRM_MODE_PAGE_FLIP_EVENT, &waiting_for_flip);
+		ret = drmModePageFlip(
+		  drm.fd, drm.crtc_id, fb->fb_id,
+		  DRM_MODE_PAGE_FLIP_EVENT, &waiting_for_flip
+		);
 		if (ret) {
-			printf("failed to queue page flip: %s\n", strerror(errno));
+			LOG("failed to queue page flip: %s\n", strerror(errno));
 			ret = -1;
 			goto program_end;
 		}
 
 		while (waiting_for_flip) {
+			/* Read input when waiting for Vblank
+			 * Given that waiting_for_flip is set to 1 before entering this
+			 * loop, this could be rewritten like this :
+			 *   do { ... } while (waiting_for_flip)
+			*/
+			myy_evdev_read_input(&evdev_data);
 			ret = select(drm.fd + 1, &fds, NULL, NULL, NULL);
 			if (ret < 0) {
-				printf("select err: %s\n", strerror(errno));
+				LOG("select err: %s\n", strerror(errno));
 				goto program_end;
 			} else if (ret == 0) {
-				printf("select timeout!\n");
+				LOG("select timeout!\n");
 				ret = -1;
 				goto program_end;
 			} else if (FD_ISSET(0, &fds)) {
-				printf("user interrupted!\n");
+				LOG("user interrupted!\n");
 				break;
 			}
+
+			/* THIS is the the part that might set waiting_for_flip to 0 */
+			/* Now, it might be better to draw directly from inside the
+			 * handler, instead of polling here... */
 			drmHandleEvent(drm.fd, &evctx);
 		}
-
+		/* Prepare for the next draw */
 		/* release last buffer to render on again: */
 		gbm_surface_release_buffer(gbm.surface, bo);
 		bo = next_bo;
 	}
-
+	/* Try to restore the previous CRTC */
+	drmModeSetCrtc(
+	  drm.fd, prev_crtc->crtc_id, prev_crtc->buffer_id,
+	  prev_crtc->x, prev_crtc->y,
+	  &drm.connector_id, 1, &prev_crtc->mode
+	);
 program_end:
 	myy_free_input_devices(&evdev_data, 1);
+no_mouse:
 	return ret;
 }

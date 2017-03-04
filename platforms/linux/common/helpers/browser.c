@@ -2,7 +2,7 @@
 #include <stdlib.h> // system
 
 #include <myy/helpers/log.h>
-#include <myy/helpers/string.h>
+#include <myy/helpers/strings.h>
 
 const char browser_command_name[] = "xdg-open ";
 #define SIZEOF_BROWSER_COMMAND (sizeof(browser_command_name)-1)

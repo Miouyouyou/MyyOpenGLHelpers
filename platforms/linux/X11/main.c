@@ -23,7 +23,7 @@
 
 #include <myy.h>
 #include <myy/helpers/log.h>
-#include <myy/helpers/string.h>
+#include <myy/helpers/strings.h>
 #include <stdlib.h>
 #include <string.h>
 #include "init_window.h"

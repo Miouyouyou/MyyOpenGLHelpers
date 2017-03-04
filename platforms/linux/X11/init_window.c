@@ -23,7 +23,7 @@
 #include "init_window.h"
 
 #include <string.h>
-#include <myy/egl_common/myy_eglattrs.h>
+#include <myy/current/opengl.h>
 
 struct _escontext ESContext = {
   .native_display = NULL,
