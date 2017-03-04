@@ -1,0 +1,6 @@
+# -- Modifying these options names require modifying the Common Section
+# -- You can modify their descriptions and default values, though.
+option(MYY_X11 "Compile the X11 version of this project" ON)
+option(MYY_DRM "Compile the Linux Direct Rendering Manager version of this project" OFF)
+option(MYY_ANDROID "Compile the Android version of this project" OFF)
+option(MYY_DEBUG "Activate debug messages" ON)

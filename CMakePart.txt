@@ -1,0 +1,125 @@
+
+# Common Section
+set (MyyCommonHelpers
+     myy/helpers/opengl/loaders.c
+     myy/helpers/fonts/packed_fonts_display.c
+     myy/helpers/fonts/packed_fonts_parser.c
+     myy/helpers/matrices.c
+     myy/helpers/strings.c)
+set (MyyLinuxHelpers
+     myy/platforms/linux/common/helpers/file.c
+     myy/platforms/linux/common/helpers/browser.c)
+set (MyyPlatformsDir
+     myy/platforms)
+set (MyyHelpersHeaders
+     myy/myy.h
+     myy/current/opengl.h
+     myy/helpers/opengl/loaders.h
+     myy/helpers/opengl/quads_structures.h
+     myy/helpers/fonts/packed_fonts_display.h
+     myy/helpers/fonts/packed_fonts_parser.h
+     myy/helpers/file.h
+     myy/helpers/log.h
+     myy/helpers/matrices.h
+     myy/helpers/strings.h
+     myy/helpers/struct.h)
+
+add_custom_target(MyyHeaders SOURCES ${MyyHelpersHeaders})
+
+if (MYY_DEBUG)
+	add_definitions(-DDEBUG)
+endif (MYY_DEBUG)
+
+if (MYY_X11 OR MYY_DRM)
+	file(COPY ${MyyFoldersToCopy} DESTINATION .)
+
+	if (MYY_X11)
+
+		set(MyyX11Sources
+		    myy/platforms/linux/X11/init_window.c
+		    myy/platforms/linux/X11/main.c)
+
+		add_executable(Program_X11
+		              ${MyyCommonHelpers}
+		              ${MyyLinuxHelpers}
+		              ${MyyX11Sources}
+		              ${MyyProjectSources})
+		target_link_libraries(Program_X11
+		                      GLESv2
+		                      EGL
+		                      X11
+		                      ${MyyProjectLibDeps})
+	endif (MYY_X11)
+
+	if (MYY_DRM)
+		find_package(PkgConfig REQUIRED)
+		pkg_search_module(DRM REQUIRED libdrm)
+		pkg_search_module(GBM REQUIRED gbm)
+		pkg_search_module(EVDEV REQUIRED libevdev)
+		set(MyyDRMSources
+		    myy/platforms/linux/DRM/main.c
+		    myy/platforms/linux/DRM/evdev.c)
+		include_directories(${DRM_INCLUDE_DIRS} ${GBM_INCLUDE_DIRS} ${EVDEV_INCLUDE_DIRS})
+		add_executable(Program_DRM
+		               ${MyyCommonHelpers}
+		               ${MyyLinuxHelpers}
+		               ${MyyDRMSources}
+		               ${MyyProjectSources})
+		target_link_libraries(Program_DRM
+		                      GLESv2
+		                      EGL
+		                      ${DRM_LIBRARIES}
+		                      ${GBM_LIBRARIES}
+		                      ${EVDEV_LIBRARIES}
+		                      ${MyyProjectLibDeps})
+	endif (MYY_DRM)
+endif (MYY_X11 OR MYY_DRM)
+
+if (MYY_ANDROID)
+	set(CMAKE_SYSTEM_NAME Android)
+
+	# The variable ANDROID_ASSETS_DIRECTORIES is not passed nor set
+	# automatically...
+	# Android will NOT provide this information directly (or at least not
+	# in a documented way !), even though IT IS ESSENTIAL ! You have to
+	# pass it MANUALLY through the Gradle script file using :
+	#
+	# cmake {
+	#   arguments ...,
+	#             "-DANDROID_ASSETS_DIRECTORIES='${sourceSets.main.assets.srcDirs}'"
+	# }
+	#
+	# ♪ "Thank" you Android ♪
+
+	# I'm afraid that this make the Android build system copy the same
+	# folder for each build.
+	# (e.g. : If this is built for 'x86', 'arm7a' and 'mips', 3 same copy
+	#         will be made)
+
+	list(GET ANDROID_ASSETS_DIRECTORIES 0 first-android-assets-dir)
+	file(COPY ${MyyFoldersToCopy} DESTINATION ${first-android-assets-dir})
+
+	# message(STATUS "FIRST DIR : ${first-android-assets-dir}")
+	# message(STATUS "ANDROID ASSETS DIRECTORY : ${ANDROID_ASSETS_DIRECTORIES}")
+
+	set(MyyAndroidSources
+	    myy/platforms/android/android_dummy_main.c
+	    myy/platforms/android/android_native_app_glue.c
+	    myy/platforms/android/helpers/android_file.c)
+	find_library(android-lib-log     log)
+	find_library(android-lib-GLESv2  GLESv2)
+	find_library(android-lib-EGL     EGL)
+	find_library(android-lib-android android)
+	add_library(main
+	            SHARED
+	            ${MyyCommonHelpers}
+	            ${MyyAndroidSources}
+	            ${MyyProjectSources})
+	target_link_libraries(main
+	                      ${android-lib-log}
+	                      ${android-lib-GLESv2}
+	                      ${android-lib-EGL}
+	                      ${android-lib-android}
+	                      ${MyyProjectLibDeps})
+
+endif (MYY_ANDROID)
