@@ -202,6 +202,11 @@ EGLBoolean CreateWindowWithEGLContext
 
 /* If too many values like this exist, a structure will be needed */
 unsigned long last_click = 0;
+struct is_moving {
+	uint32_t button;
+	uint16_t start_x, start_y;
+} is_moving = {0};
+
 unsigned int UserInterrupt() {
 
   XEvent xev;
@@ -221,13 +226,30 @@ unsigned int UserInterrupt() {
           y = ESContext.window_height - xev.xbutton.y,
           button = xev.xbutton.button;
         unsigned long click_time = xev.xbutton.time;
+
+				if (is_moving.button == 0) {
+					is_moving.button = button;
+				  is_moving.start_x = x;
+					is_moving.start_y = y;
+				}
         if (click_time - last_click > 250) myy_click(x, y, button);
         else myy_doubleclick(x, y, button);
         last_click = click_time;
         break;
+			case ButtonRelease: {
+				is_moving.button = 0;
+				break;
+			}
       case MotionNotify:
-        myy_hover(xev.xmotion.x,
-                  ESContext.window_height - xev.xmotion.y);
+        if (is_moving.button == 0)
+					myy_hover(
+						xev.xmotion.x, ESContext.window_height - xev.xmotion.y
+					);
+				else
+					myy_move(
+						xev.xmotion.x, ESContext.window_height - xev.xmotion.y,
+						is_moving.start_x, is_moving.start_y
+					);
         break;
       case KeyPress:
         myy_key(xev.xkey.keycode);

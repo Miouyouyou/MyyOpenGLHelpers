@@ -2,7 +2,7 @@
 #include <myy/helpers/matrices.h>
 
 void myy_matrix_4x4_print
-(union myy_4x4_matrix * __restrict const matrix) {
+(union myy_4x4_matrix const * __restrict const matrix) {
 	LOG(
 	  "      X     |     Y     |     Z     |     W      \n"
 	  "[%10.4f |%10.4f |%10.4f |%10.4f ] * X\n"
@@ -67,3 +67,38 @@ void myy_matrix_4x4_mult
 
 }
 
+void myy_matrix_4x4_ortho_layered_window_coords
+(union myy_4x4_matrix * __restrict const matrix,
+ unsigned int const width, unsigned int const height,
+ unsigned int const layers)
+{
+
+	union myy_4x4_matrix const ortho_matrix = {
+		.vec_rows = {
+			{2.0/width, 0, 0, 0},
+			{0, -2.0/height, 0, 0},
+			{0, 0, 1.0/layers, 0},
+			{-1, 1, 0, 1}
+		}
+	};
+	myy_matrix_4x4_print(&ortho_matrix);
+	*matrix = ortho_matrix;
+}
+
+void myy_matrix_4x4_ortho_layered
+(union myy_4x4_matrix * __restrict const matrix,
+ unsigned int const width, unsigned int const height,
+ unsigned int const layers)
+{
+
+	union myy_4x4_matrix const ortho_matrix = {
+		.vec_rows = {
+			{2.0/width, 0, 0, 0},
+			{0, 2.0/height, 0, 0},
+			{0, 0, 1.0/layers, 0},
+			{-1, -1, 0, 1}
+		}
+	};
+	myy_matrix_4x4_print(&ortho_matrix);
+	*matrix = ortho_matrix;
+}

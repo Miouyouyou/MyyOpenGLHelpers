@@ -18,7 +18,7 @@ union myy_4x4_matrix {
 } __ALIGN_AT(64);
 
 void myy_matrix_4x4_print
-(union myy_4x4_matrix * __restrict const matrix);
+(union myy_4x4_matrix const * __restrict const matrix);
 
 void myy_matrix_4x4_identity
 (union myy_4x4_matrix * __restrict const matrix);
@@ -30,5 +30,15 @@ void myy_matrix_4x4_translate
 void myy_matrix_4x4_mult
 (union myy_4x4_matrix * __restrict const matrix_stack,
  union myy_4x4_matrix const * __restrict const new_matrix);
+
+void myy_matrix_4x4_ortho_layered_window_coords
+(union myy_4x4_matrix * __restrict const matrix,
+ unsigned int const width, unsigned int const height,
+ unsigned int layers);
+
+void myy_matrix_4x4_ortho_layered
+(union myy_4x4_matrix * __restrict const matrix,
+ unsigned int const width, unsigned int const height,
+ unsigned int layers);
 
 #endif

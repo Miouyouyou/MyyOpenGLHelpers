@@ -16,7 +16,19 @@ int16_t myy_glyph_to_twotris_quad
  US_two_tris_quad_3D * __restrict const quad,
  int16_t x_offset_px);
 
+int16_t myy_glyph_to_twotris_quad_window_coords
+(struct glyph_infos const * __restrict const glyph_infos,
+ uint32_t const codepoint,
+ US_two_tris_quad_3D * __restrict const quad,
+ int16_t x_offset_px);
+
 void myy_codepoints_to_glyph_twotris_quads
+(struct glyph_infos const * __restrict const glyph_infos,
+ uint32_t const * __restrict const string,
+ unsigned int const n_characters,
+ US_two_tris_quad_3D * __restrict const quads);
+
+void myy_codepoints_to_glyph_twotris_quads_window_coords
 (struct glyph_infos const * __restrict const glyph_infos,
  uint32_t const * __restrict const string,
  unsigned int const n_characters,

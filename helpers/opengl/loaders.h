@@ -110,13 +110,12 @@ unsigned int glhBuildAndSaveProgram
 
 /**
  * Compile, Link and Save a GLSL program.
- * Instead of requiring an array of shaders references, and the array
- * length, this function takes two shaders references that are expected
- * to be Vertex Shader reference and a Fragment Shader reference.
+ * Compared to glhCompileProgram, this function takes two shaders 
+ * references that are expected to be a Vertex Shader reference and a
+ * Fragment Shader reference.
  * 
- * This is function covers the basic form of GLSL programs.
+ * That function covers the basic form of GLSL programs.
  * 
- * @params
  * @param metadata A user-generated structure defining the
  *                 referenced shaders filepaths and the address where
  *                 to save the linked program.
