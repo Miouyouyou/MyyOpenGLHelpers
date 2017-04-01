@@ -1,6 +1,8 @@
 #include <myy/helpers/log.h>
 #include <myy/helpers/matrices.h>
 
+#include <stdint.h>
+
 void myy_matrix_4x4_print
 (union myy_4x4_matrix const * __restrict const matrix) {
 	LOG(
@@ -101,4 +103,42 @@ void myy_matrix_4x4_ortho_layered
 	};
 	myy_matrix_4x4_print(&ortho_matrix);
 	*matrix = ortho_matrix;
+}
+
+vec4 myy_vec4_4x4_matrix_mult
+(vec4 const * __restrict const vector,
+ union myy_4x4_matrix const * __restrict const matrix) {
+	float
+		x = vector[0][vec_x],
+		y = vector[0][vec_y],
+		z = vector[0][vec_z],
+		w = vector[0][vec_w];
+		
+	return matrix->vec_rows[m_x] * x +
+		matrix->vec_rows[m_y] * y +
+		matrix->vec_rows[m_z] * z +
+		matrix->vec_rows[m_w] * w;
+}
+
+vec4 myy_3i16_vector_4x4_matrix_mult
+(int16_t const * __restrict const vector,
+ union myy_4x4_matrix const * __restrict const matrix,
+ int16_t w_value)
+{
+	float
+		x = vector[vec_x],
+		y = vector[vec_y],
+		z = vector[vec_z],
+		w = w_value;
+	
+	return matrix->vec_rows[m_x] * x +
+		matrix->vec_rows[m_y] * y +
+		matrix->vec_rows[m_z] * z +
+		matrix->vec_rows[m_w] * w;
+}
+
+void myy_vec4_print(vec4 const vector)
+{
+	LOG("%f, %f, %f, %f\n", 
+	    vector[vec_x], vector[vec_y], vector[vec_z], vector[vec_w]);
 }

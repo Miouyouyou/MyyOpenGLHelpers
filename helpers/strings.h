@@ -1,5 +1,5 @@
 /*
-  Copyright (c) 2016 Miouyouyou <Myy>
+  Copyright (c) 2017 Miouyouyou <Myy>
 
   Permission is hereby granted, free of charge, to any person obtaining
   a copy of this software and associated documentation files 
@@ -28,8 +28,9 @@
 #define sh_pointToNextString(contiguous_strings) while (*contiguous_strings++)
 #include <stdint.h>
 
-/** Store the UTF-8 sequence corresponding to the provided UTF-32
- *  codepoint in the provided string.
+/**
+ * Store the UTF-8 sequence corresponding to the provided UTF-32
+ * codepoint in the provided string.
  *
  * If you have an UTF-8 terminal, you can then just do :
  *   char string[5] = {0};
@@ -52,5 +53,34 @@ static inline unsigned int myy_string_size(const uint8_t * const string) {
 	for(; string[c] != 0; c++);
 	return c;
 }
+
+/** Represents an UTF-8 codepoint converted in UTF-32.
+ * @field raw The UTF-32 codepoint
+ * @field size The size in octets of the complete UTF-8 codepoint.
+ *             Can be 1, 2, 3 or 4 bytes.
+ * Example :
+ * "店" → converted == 24215, size == 3 (octets)
+ */
+struct utf8_codepoint {
+	uint32_t raw;
+	uint32_t size;
+};
+
+/** 
+ * Provides informations about an UTF-8 codepoint located at the
+ * provided address.
+ * 
+ * This function infers that, in case of a multibyte UTF-8 character,
+ * string is not truncated.
+ * 
+ * This function does not check if the provided UTF-8 codepoint is
+ * "well-formed".
+ * 
+ * @param string The start address of the character codepoint to analyse
+ * 
+ * @return A struct utf8_codepoint providing the UTF-32 codepoint value
+ *         and the size, in octets, of the UTF-8 encoded codepoint.
+ */
+struct utf8_codepoint utf8_codepoint_and_size(uint8_t * string);
 
 #endif
