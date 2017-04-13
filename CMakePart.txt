@@ -2,6 +2,7 @@
 # Common Section
 set (MyyCommonHelpers
      myy/helpers/opengl/loaders.c
+     myy/helpers/opengl/quads_structures.c
      myy/helpers/fonts/packed_fonts_display.c
      myy/helpers/fonts/packed_fonts_parser.c
      myy/helpers/matrices.c
@@ -48,6 +49,8 @@ if (MYY_X11 OR MYY_DRM)
 		                      GLESv2
 		                      EGL
 		                      X11
+		                      xcb
+		                      xcb-xkb
 		                      ${MyyProjectLibDeps})
 	endif (MYY_X11)
 

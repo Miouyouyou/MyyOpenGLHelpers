@@ -48,6 +48,8 @@ void myy_doubleclick(int x, int y, unsigned int button);
 void myy_hover(int x, int y);
 void myy_move(int x, int y, int start_x, int start_y);
 void myy_key(unsigned int keycode);
+void myy_key_release(unsigned int keycode);
+void myy_after_draw();
 
 /* Temporary changes */
 enum mouse_action_type { myy_mouse_wheel_action };

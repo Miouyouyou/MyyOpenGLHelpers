@@ -29,6 +29,8 @@
 #include <EGL/egl.h>
 #include <EGL/eglplatform.h>
 
+#include <xcb/xcb.h>
+
 #include <myy.h>
 
 /* eglplatform.h implicitly include X11 libraries */
@@ -47,11 +49,14 @@ struct _escontext
   /// EGL surface
   EGLSurface  surface;
 
+	xcb_connection_t * connection;
 };
 
-void CreateNativeWindow
+xcb_window_t CreateNativeWindow
+(const char * const title, const int width, const int height,
+ EGLint const visual_id);
+EGLBoolean CreateEGLContext
 (const char * const title, const int width, const int height);
-EGLBoolean CreateEGLContext();
 EGLBoolean CreateWindowWithEGLContext
 (const char * const title, const int width, const int height);
 unsigned int UserInterrupt();

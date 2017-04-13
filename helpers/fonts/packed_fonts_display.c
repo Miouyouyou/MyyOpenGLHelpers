@@ -68,41 +68,10 @@ int16_t myy_glyph_to_twotris_quad
 		  tex_up    = glyphdata->tex_top,
 		  tex_down  = glyphdata->tex_bottom;
 
-		quad->points[upleft_corner].s = tex_left;
-		quad->points[upleft_corner].t = tex_up;
-		quad->points[upleft_corner].x = left;
-		quad->points[upleft_corner].y = up;
-		quad->points[upleft_corner].z = layer;
-
-		quad->points[downleft_corner].s = tex_left;
-		quad->points[downleft_corner].t = tex_down;
-		quad->points[downleft_corner].x = left;
-		quad->points[downleft_corner].y = down;
-		quad->points[downleft_corner].z = layer;
-
-		quad->points[upright_corner].s	= tex_right;
-		quad->points[upright_corner].t	= tex_up;
-		quad->points[upright_corner].x	= right;
-		quad->points[upright_corner].y	= up;
-		quad->points[upright_corner].z	= layer;
-
-		quad->points[downright_corner].s = tex_right;
-		quad->points[downright_corner].t = tex_down;
-		quad->points[downright_corner].x = right;
-		quad->points[downright_corner].y = down;
-		quad->points[downright_corner].z = layer;
-
-		quad->points[repeated_upright_corner].s = tex_right;
-		quad->points[repeated_upright_corner].t = tex_up;
-		quad->points[repeated_upright_corner].x = right;
-		quad->points[repeated_upright_corner].y = up;
-		quad->points[repeated_upright_corner].z = layer;
-
-		quad->points[repeated_downleft_corner].s = tex_left;
-		quad->points[repeated_downleft_corner].t = tex_down;
-		quad->points[repeated_downleft_corner].x = left;
-		quad->points[repeated_downleft_corner].y = down;
-		quad->points[repeated_downleft_corner].z = layer;
+		US_two_tris_quad_3D_store(
+			quad, left, right, up, down, layer,
+			tex_left, tex_right, tex_up, tex_down
+		);
 		return advance_x;
 	}
 	return x_offset_px;
@@ -163,41 +132,10 @@ void myy_glyph_to_twotris_quad_window_coords
 		  tex_up    = glyphdata->tex_top,
 		  tex_down  = glyphdata->tex_bottom;
 
-		quad->points[upleft_corner].s = tex_left;
-		quad->points[upleft_corner].t = tex_up;
-		quad->points[upleft_corner].x = left;
-		quad->points[upleft_corner].y = up;
-		quad->points[upleft_corner].z = layer;
-
-		quad->points[downleft_corner].s = tex_left;
-		quad->points[downleft_corner].t = tex_down;
-		quad->points[downleft_corner].x = left;
-		quad->points[downleft_corner].y = down;
-		quad->points[downleft_corner].z = layer;
-
-		quad->points[upright_corner].s = tex_right;
-		quad->points[upright_corner].t = tex_up;
-		quad->points[upright_corner].x = right;
-		quad->points[upright_corner].y = up;
-		quad->points[upright_corner].z = layer;
-
-		quad->points[downright_corner].s = tex_right;
-		quad->points[downright_corner].t = tex_down;
-		quad->points[downright_corner].x = right;
-		quad->points[downright_corner].y = down;
-		quad->points[downright_corner].z = layer;
-
-		quad->points[repeated_upright_corner].s = tex_right;
-		quad->points[repeated_upright_corner].t = tex_up;
-		quad->points[repeated_upright_corner].x = right;
-		quad->points[repeated_upright_corner].y = up;
-		quad->points[repeated_upright_corner].z = layer;
-
-		quad->points[repeated_downleft_corner].s = tex_left;
-		quad->points[repeated_downleft_corner].t = tex_down;
-		quad->points[repeated_downleft_corner].x = left;
-		quad->points[repeated_downleft_corner].y = down;
-		quad->points[repeated_downleft_corner].z = layer;
+		US_two_tris_quad_3D_store(
+			quad, left, right, up, down, layer,
+			tex_left, tex_right, tex_up, tex_down
+		);
 		
 		x_offset_px = advance_x;
 	}

@@ -130,9 +130,24 @@ union US_two_triangles_textured_quad_3D_representations {
 typedef union US_two_triangles_textured_quad_2D_representations US_two_tris_quad;
 typedef union US_two_triangles_textured_quad_3D_representations US_two_tris_quad_3D;
 
+void US_two_tris_quad_3D_store
+(US_two_tris_quad_3D * __restrict const quads,
+ uint16_t const left, uint16_t const right,
+ uint16_t const top,  uint16_t const bottom,
+ uint16_t const layer,
+ uint16_t const tex_left, uint16_t const tex_right,
+ uint16_t const tex_top, uint16_t const tex_bottom);
+
+void US_two_tris_quad_3D_draw_pixelscoords
+(GLuint const buffer_id,
+ GLuint const xyz_attribute, GLuint const st_attribute,
+ GLuint const offset,
+ unsigned int const n_quads);
+
 enum quad_coords_order {
-	upleft_corner, downleft_corner, upright_corner, downright_corner,
-	repeated_upright_corner, repeated_downleft_corner, two_triangles_corners
+	topleft_corner, bottomleft_corner, topright_corner, bottomright_corner,
+	repeated_topright_corner, repeated_bottomleft_corner,
+	n_corners_two_tris_quad
 };
 
 

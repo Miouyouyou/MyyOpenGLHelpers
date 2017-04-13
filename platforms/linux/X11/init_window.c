@@ -24,6 +24,44 @@
 
 #include <string.h>
 #include <myy/current/opengl.h>
+#include <myy/helpers/strings.h>
+#include <myy/helpers/log.h>
+
+#include <xcb/xcb.h>
+#include <xcb/xkb.h>
+
+enum myy_eglstatus {
+	myy_eglstatus_no_problem,
+	myy_eglstatus_eglGetDisplay,
+	myy_eglstatus_eglInitialize,
+	myy_eglstatus_eglGetConfigs,
+	myy_eglstatus_eglChooseConfig,
+	myy_eglstatus_eglBindAPI,
+	myy_eglstatus_eglCreateWindowSurface,
+	myy_eglstatus_eglCreateContext,
+	myy_eglstatus_eglMakeCurrent,
+	myy_eglstatus_egl_getvisualid,
+	myy_eglstatus_n
+};
+
+static char const * const myy_eglerrors[myy_eglstatus_n] = {
+	[myy_eglstatus_no_problem] = "Everything OK with EGL !",
+	[myy_eglstatus_eglGetDisplay] = "Could not GetDisplay",
+	[myy_eglstatus_eglInitialize] = "Could not initialize EGL",
+	[myy_eglstatus_eglGetConfigs] =
+		"Could not retrieve EGL configurations",
+	[myy_eglstatus_eglChooseConfig] =
+		"Could not choose an EGL configuration",
+	[myy_eglstatus_eglBindAPI] = "Could not bind the API",
+	[myy_eglstatus_eglCreateWindowSurface] =
+		"Could not create an EGL Window surface",
+	[myy_eglstatus_eglCreateContext] =
+		"Could not create an EGL Context",
+	[myy_eglstatus_eglMakeCurrent] =
+		"Could not make the current EGL context current",
+	[myy_eglstatus_egl_getvisualid] =
+		"Could not get the visual id of the chosen configuration"
+};
 
 struct _escontext ESContext = {
   .native_display = NULL,
@@ -38,165 +76,179 @@ struct _escontext ESContext = {
 #define TRUE 1
 #define FALSE 0
 
-void CreateNativeWindow
-(const char * __restrict const title, const int width, const int height)
+xcb_window_t CreateNativeWindow
+(const char * __restrict const title, const int width, const int height,
+ EGLint const visual_id)
 {
-  Window root;
-  XSetWindowAttributes swa;
-  XSetWindowAttributes xattr;
-  Atom wm_state;
-  XWMHints hints;
-  XEvent xev;
-  Window win;
-  Atom wm_delete;
-  Display* x_display = XOpenDisplay(NULL);
+	Display * display = XOpenDisplay(NULL);
+	xcb_connection_t * const connection = xcb_connect(NULL, NULL);
+	xcb_screen_t * const screen =
+		xcb_setup_roots_iterator(xcb_get_setup(connection)).data;
+	
+	xcb_window_t window = xcb_generate_id(connection);
+	
+	uint32_t mask = XCB_CW_BACK_PIXEL | XCB_CW_EVENT_MASK;
+	uint32_t values[2] = {
+		screen->white_pixel,
+		XCB_EVENT_MASK_EXPOSURE       | XCB_EVENT_MASK_BUTTON_PRESS   |
+		XCB_EVENT_MASK_BUTTON_RELEASE | XCB_EVENT_MASK_POINTER_MOTION |
+		XCB_EVENT_MASK_ENTER_WINDOW   | XCB_EVENT_MASK_LEAVE_WINDOW   |
+		XCB_EVENT_MASK_KEY_PRESS      | XCB_EVENT_MASK_KEY_RELEASE
+	};
+	
+	xcb_void_cookie_t create_cookie = xcb_create_window_checked(
+		connection,
+		XCB_COPY_FROM_PARENT,
+		window,
+		screen->root,
+		0, 0,
+		width, height,
+		0,
+		XCB_WINDOW_CLASS_INPUT_OUTPUT,
+		screen->root_visual,
+		mask, values
+	);
+	xcb_void_cookie_t map_cookie = 
+		xcb_map_window_checked(connection, window);
+	
+	xcb_generic_error_t * error =
+		xcb_request_check(connection, create_cookie);
+	if (error) LOG("Could not create a window !?\n");
+	error = xcb_request_check(connection, map_cookie);
+	if (error) LOG("Could not map a window !?\n");
+	
+	xcb_map_window(connection, window);
+	xcb_flush(connection);
 
-  root = DefaultRootWindow(x_display);
+	xcb_xkb_use_extension(connection, 1, 0);
+  xcb_xkb_per_client_flags_cookie_t repeat =
+		xcb_xkb_per_client_flags(
+			connection,
+			XCB_XKB_ID_USE_CORE_KBD,
+			XCB_XKB_PER_CLIENT_FLAG_DETECTABLE_AUTO_REPEAT,
+			XCB_XKB_PER_CLIENT_FLAG_DETECTABLE_AUTO_REPEAT,
+			0,0,0);
+	
+	xcb_xkb_per_client_flags_reply_t * pcf_reply =
+		xcb_xkb_per_client_flags_reply(
+			connection, repeat, NULL
+		);
+	
+	if (!pcf_reply) LOG("%p!???\n", pcf_reply);
 
-  swa.event_mask = ExposureMask | ButtonPressMask | ButtonReleaseMask | PointerMotionMask | KeyPressMask;
 
-  /* XCreateWindow arguments :
-     Display,
-     Parent window,
-     x, y from Parent Window
-     width, height of the new window,
-     Border width,
-     Depth,
-     Window class,
-     VisualType,
-     MasksType,
-     Masks */
-
-  win = XCreateWindow(x_display, root, 0, 0, width, height,
-                      0, CopyFromParent, InputOutput, CopyFromParent,
-                      CWEventMask, &swa);
-
-  xattr.override_redirect = FALSE;
-
-  XChangeWindowAttributes( x_display, win, CWOverrideRedirect, &xattr );
-
-  /* Tells the window manager to accept input for this new window */
-  hints.input = TRUE;
-  hints.flags = InputHint;
-
-  XSetWMHints(x_display, win, &hints);
-
-  /* Without this, the window would not be visible
-     Quoting XChangeWindowAttributes manual :
-   The created window is not yet displayed (mapped) on the user's
-   display. To display the window, call XMapWindow. */
-
-  XMapWindow(x_display, win);
-
-  /* Sets the title. Can it be done before Mapping the window ? */
-  XStoreName(x_display, win, title);
-
-  /* Get the ATOM "_NET_WM_STATE",
-     Create it if it doesn't exist
-
-   The XInternAtom function returns the atom identifier associated with
-   the specified atom_name string.  If only_if_exists is False, the atom
-   is created if it does not exist. */
-  wm_state = XInternAtom(x_display, "_NET_WM_STATE", FALSE);
-
-  memset(&xev, 0, sizeof(xev));
-  xev.type = ClientMessage; /* XClientMessageEvent */
-  xev.xclient.window       = win;
-  xev.xclient.message_type = wm_state;
-  xev.xclient.format       = 32;
-  /* _NET_WM_STATE_REMOVE        0    remove/unset property
-     _NET_WM_STATE_ADD           1    add/set property
-     _NET_WM_STATE_TOGGLE        2    toggle property  */
-  xev.xclient.data.l[0]    = 1;
-  xev.xclient.data.l[1]    = FALSE;
-  XSendEvent (
-    x_display,
-    root, // The example states DefaultRootWindow( x_display ) ??
-    FALSE,
-    SubstructureNotifyMask,
-    &xev );
-
-  /* So, this seems to be needed in order to catch the destruction of
-     the window, when scanning for events
-     The lines topped with a 'fatal IO error 11 BUG' concern this
-     problem */
-
-  destroy = XInternAtom(x_display, "WM_DELETE_WINDOW", FALSE);
-  XSetWMProtocols(x_display, win, &destroy, 1);
-
-  ESContext.native_display = x_display;
+  ESContext.native_display = display;
   ESContext.window_width = width;
   ESContext.window_height = height;
-  ESContext.native_window = (EGLNativeWindowType) win;
+  ESContext.native_window = window;
+	ESContext.connection = connection;
+	
+	return window;
 }
 
-EGLBoolean CreateEGLContext ()
+EGLBoolean CreateEGLContext
+(char const * __restrict const title,
+ int const width, int const height)
 {
-   EGLint numConfigs;
-   EGLint majorVersion;
-   EGLint minorVersion;
-   EGLContext context;
-   EGLSurface surface;
-   EGLConfig config;
-   EGLint eglAttribs[] =  {
-     MYY_EGL_COMMON_PC_ATTRIBS,
-     EGL_NONE, EGL_NONE
-   };
-   /* The system can clearly provide you a OpenGL ES 2.x compliant
-      configuration without OpenGL ES 2.x enabled ! */
-   EGLint contextAttribs[] =
-     { MYY_CURRENT_GL_CONTEXT, EGL_NONE, EGL_NONE };
+	enum myy_eglstatus current_status = myy_eglstatus_no_problem;
+	EGLBoolean return_status = EGL_FALSE;
+	EGLint numConfigs;
+	EGLint majorVersion;
+	EGLint minorVersion;
+	EGLContext context;
+	EGLSurface surface;
+	EGLConfig config;
+	EGLint eglConfAttrVisualID;
+	EGLint eglAttribs[] =  {
+		MYY_EGL_COMMON_PC_ATTRIBS,
+		EGL_NONE, EGL_NONE
+	};
+	/* The system can clearly provide you a OpenGL ES 2.x compliant
+	   configuration without OpenGL ES 2.x enabled ! */
+	EGLint contextAttribs[] =
+		{ MYY_CURRENT_GL_CONTEXT, EGL_NONE, EGL_NONE };
 
-   EGLDisplay display = eglGetDisplay( ESContext.native_display );
-   if ( display == EGL_NO_DISPLAY ) return EGL_FALSE;
+	EGLDisplay display = eglGetDisplay( ESContext.display );
+	if ( display == EGL_NO_DISPLAY ) {
+		current_status = myy_eglstatus_eglGetDisplay;
+		goto print_current_egl_status_and_return;
+	}
 
-   // Initialize EGL
-   if ( !eglInitialize(display, &majorVersion, &minorVersion) )
-     return EGL_FALSE;
+	// Initialize EGL
+	if ( !eglInitialize(display, &majorVersion, &minorVersion) ) {
+		current_status = myy_eglstatus_eglInitialize;
+		goto print_current_egl_status_and_return;
+	}
 
-   // Get configs
-   if (   (eglGetConfigs(display, NULL, 0, &numConfigs) != EGL_TRUE)
-       || (numConfigs == 0))
-     return EGL_FALSE;
+	// Get configs
+	if (   (eglGetConfigs(display, NULL, 0, &numConfigs) != EGL_TRUE)
+			|| (numConfigs == 0)) {
+		current_status = myy_eglstatus_eglGetConfigs;
+		goto print_current_egl_status_and_return;
+	}
 
-   // Choose config
-   if ( (eglChooseConfig(display, eglAttribs,
-                         &config, 1, &numConfigs) != EGL_TRUE)
-       || (numConfigs != 1))
-     return EGL_FALSE;
+	// Choose config
+	if ( (eglChooseConfig(display, eglAttribs, &config, 1, &numConfigs)
+		  != EGL_TRUE)
+			|| (numConfigs != 1)) {
+		current_status = myy_eglstatus_eglChooseConfig;
+		goto print_current_egl_status_and_return;
+	}
 
-   // Create a surface
-   surface =
-     eglCreateWindowSurface(display, config,
-                            ESContext.native_window, NULL);
+	if (eglBindAPI(EGL_OPENGL_ES_API) != EGL_TRUE) {
+		current_status = myy_eglstatus_eglBindAPI;
+		goto print_current_egl_status_and_return;
+	}
+	
+	// Create a GL context
+	context = eglCreateContext(
+		display, config, EGL_NO_CONTEXT, contextAttribs
+	);
 
-   if ( surface == EGL_NO_SURFACE ) return EGL_FALSE;
+	if ( context == EGL_NO_CONTEXT ) {
+		current_status = myy_eglstatus_eglCreateContext;
+		goto print_current_egl_status_and_return;
+	}
+	
+	xcb_window_t native_window =
+		CreateNativeWindow(title, width, height, eglConfAttrVisualID);
+	// Create a surface
+	surface = eglCreatePlatformWindowSurface(
+		display, config, &native_window, NULL
+	);
 
-   // Create a GL context
-   context = eglCreateContext(display, config,
-                              EGL_NO_CONTEXT, contextAttribs );
+	if ( surface == EGL_NO_SURFACE ) {
+		current_status = myy_eglstatus_eglCreateWindowSurface;
+		goto print_current_egl_status_and_return;
+	}
 
-   if ( context == EGL_NO_CONTEXT ) return EGL_FALSE;
+	// Make the context current
+	if ( !eglMakeCurrent(display, surface, surface, context) ) {
+		current_status = myy_eglstatus_eglMakeCurrent;
+		goto print_current_egl_status_and_return;
+	}
 
-   // Make the context current
-   if ( !eglMakeCurrent(display, surface, surface, context) )
-     return EGL_FALSE;
+	ESContext.display = display;
+	ESContext.surface = surface;
+	ESContext.context = context;
+	return_status = EGL_TRUE;
 
-   ESContext.display = display;
-   ESContext.surface = surface;
-   ESContext.context = context;
-   return EGL_TRUE;
+print_current_egl_status_and_return:
+	LOG(
+		"%s - Error code (%04x)\n",
+		myy_eglerrors[current_status], eglGetError()
+	);
+	return return_status;
 }
 
 void RefreshWindow() {
-  eglSwapBuffers(ESContext.display, ESContext.surface);
+	eglSwapBuffers(ESContext.display, ESContext.surface);
 }
 
 EGLBoolean CreateWindowWithEGLContext
 (const char * __restrict const title,
  const int width, const int height) {
-  CreateNativeWindow(title, width, height);
-  return CreateEGLContext();
+  return CreateEGLContext(title, width, height);
 }
 
 
@@ -207,25 +259,27 @@ struct is_moving {
 	uint16_t start_x, start_y;
 } is_moving = {0};
 
+#include <stdlib.h>
 unsigned int UserInterrupt() {
 
-  XEvent xev;
-  Display *x_display = ESContext.native_display;
+	xcb_generic_event_t * event;
+  xcb_connection_t * const connection =
+		ESContext.connection;
   unsigned int interrupted = 0;
 
-  while ( XPending( x_display ) ) {
-    XNextEvent( x_display, &xev );
-    switch(xev.type) {
-      case ClientMessage:
-        interrupted = (xev.xclient.data.l[0] == destroy);
-        break;
-      case ButtonPress:
-        ; // Values definitions after a label borks the compiler
+  while ((event = xcb_poll_for_event (connection))) {
+		unsigned int response = event->response_type & ~0x80;
+    switch(response) {
+      case XCB_BUTTON_PRESS: {
+				// Values definitions after a label borks the compiler
+				xcb_button_press_event_t *bp =
+					(xcb_button_press_event_t *) event;
+				
         unsigned int
-          x = xev.xbutton.x,
-          y = ESContext.window_height - xev.xbutton.y,
-          button = xev.xbutton.button;
-        unsigned long click_time = xev.xbutton.time;
+          x = bp->event_x,
+          y = bp->event_y,
+          button = bp->detail;
+        unsigned long click_time = bp->time;
 
 				if (is_moving.button == 0) {
 					is_moving.button = button;
@@ -235,26 +289,42 @@ unsigned int UserInterrupt() {
         if (click_time - last_click > 250) myy_click(x, y, button);
         else myy_doubleclick(x, y, button);
         last_click = click_time;
-        break;
-			case ButtonRelease: {
+			}
+			break;
+			case XCB_BUTTON_RELEASE: {
 				is_moving.button = 0;
 				break;
 			}
-      case MotionNotify:
+      case XCB_MOTION_NOTIFY: {
+				xcb_motion_notify_event_t * motion =
+					(xcb_motion_notify_event_t *) event;
+				
         if (is_moving.button == 0)
-					myy_hover(
-						xev.xmotion.x, ESContext.window_height - xev.xmotion.y
-					);
+					myy_hover(motion->event_x, motion->event_y);
 				else
 					myy_move(
-						xev.xmotion.x, ESContext.window_height - xev.xmotion.y,
+						motion->event_x, motion->event_y,
 						is_moving.start_x, is_moving.start_y
 					);
-        break;
-      case KeyPress:
-        myy_key(xev.xkey.keycode);
-        break;
+			}
+			break;
+      case XCB_KEY_PRESS: {
+				xcb_key_press_event_t * kp = (xcb_key_press_event_t *) event;
+        myy_key(kp->detail);
+			}
+      break;
+			case XCB_KEY_RELEASE: {
+				xcb_key_press_event_t * kp = (xcb_key_press_event_t *) event;
+				myy_key_release(kp->detail);
+			}
+			break;
+			case XCB_DESTROY_NOTIFY:
+			case XCB_UNMAP_NOTIFY: {
+				interrupted = 1;
+			}
+			break;
     }
+    free(event);
   }
 
   return interrupted;
@@ -268,3 +338,4 @@ static void Terminate() {
 
   XCloseDisplay( display );
 }
+
