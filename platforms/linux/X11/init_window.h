@@ -38,16 +38,16 @@ static Atom destroy;
 
 struct _escontext
 {
-  /// Native System informations
-  EGLNativeDisplayType native_display;
-  EGLNativeWindowType native_window;
-  uint16_t window_width, window_height;
-  /// EGL display
-  EGLDisplay  display;
-  /// EGL context
-  EGLContext  context;
-  /// EGL surface
-  EGLSurface  surface;
+	/// Native System informations
+	EGLNativeDisplayType native_display;
+	EGLNativeWindowType native_window;
+	uint16_t window_width, window_height;
+	/// EGL display
+	EGLDisplay  display;
+	/// EGL context
+	EGLContext  context;
+	/// EGL surface
+	EGLSurface  surface;
 
 	xcb_connection_t * connection;
 };

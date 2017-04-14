@@ -220,6 +220,34 @@ void myy_codepoints_to_glyph_twotris_quads_window_coords
 
 }
 
+unsigned int myy_single_string_to_quads
+(struct glyph_infos const * __restrict const glyph_infos,
+ uint8_t const * __restrict string,
+ uint8_t const * __restrict const quads_buffer_address,
+ struct text_offset * __restrict const text_offset) 
+{
+	US_two_tris_quad_3D * __restrict const quads_buffer =
+		(US_two_tris_quad_3D *) quads_buffer_address;
+	
+	unsigned int stored_quads = 0;
+	while (*string) {
+		struct utf8_codepoint const utf8_codepoint = 
+			utf8_codepoint_and_size(string);
+		string += utf8_codepoint.size;
+		myy_glyph_to_twotris_quad_window_coords(
+			glyph_infos, utf8_codepoint.raw, quads_buffer+stored_quads,
+			text_offset
+		);
+		stored_quads++;
+	}
+	
+	uintptr_t const quads_address_start = quads_buffer;
+	uintptr_t const quads_address_end   = quads_buffer+stored_quads;
+	uintptr_t const end_offset = quads_address_end - quads_address_start;
+	
+	return (unsigned int) end_offset;
+}
+
 unsigned int myy_strings_to_quads_va
 (struct glyph_infos const * __restrict const glyph_infos,
  unsigned int const n_strings,

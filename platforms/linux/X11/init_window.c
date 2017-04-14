@@ -76,6 +76,7 @@ struct _escontext ESContext = {
 #define TRUE 1
 #define FALSE 0
 
+#include <stdlib.h>
 xcb_window_t CreateNativeWindow
 (const char * __restrict const title, const int width, const int height,
  EGLint const visual_id)
@@ -90,10 +91,15 @@ xcb_window_t CreateNativeWindow
 	uint32_t mask = XCB_CW_BACK_PIXEL | XCB_CW_EVENT_MASK;
 	uint32_t values[2] = {
 		screen->white_pixel,
-		XCB_EVENT_MASK_EXPOSURE       | XCB_EVENT_MASK_BUTTON_PRESS   |
-		XCB_EVENT_MASK_BUTTON_RELEASE | XCB_EVENT_MASK_POINTER_MOTION |
-		XCB_EVENT_MASK_ENTER_WINDOW   | XCB_EVENT_MASK_LEAVE_WINDOW   |
-		XCB_EVENT_MASK_KEY_PRESS      | XCB_EVENT_MASK_KEY_RELEASE
+		XCB_EVENT_MASK_EXPOSURE       |
+		XCB_EVENT_MASK_BUTTON_PRESS   |
+		XCB_EVENT_MASK_BUTTON_RELEASE |
+		XCB_EVENT_MASK_POINTER_MOTION |
+		XCB_EVENT_MASK_ENTER_WINDOW   |
+		XCB_EVENT_MASK_LEAVE_WINDOW   |
+		XCB_EVENT_MASK_KEY_PRESS      |
+		XCB_EVENT_MASK_KEY_RELEASE    |
+		XCB_EVENT_MASK_STRUCTURE_NOTIFY
 	};
 	
 	xcb_void_cookie_t create_cookie = xcb_create_window_checked(
@@ -117,25 +123,42 @@ xcb_window_t CreateNativeWindow
 	error = xcb_request_check(connection, map_cookie);
 	if (error) LOG("Could not map a window !?\n");
 	
-	xcb_map_window(connection, window);
 	xcb_flush(connection);
 
+	xcb_intern_atom_cookie_t wmDeleteCookie = xcb_intern_atom(
+		connection, 0, strlen("WM_DELETE_WINDOW"),
+		"WM_DELETE_WINDOW"
+	);
+	xcb_intern_atom_cookie_t wmProtocolsCookie = xcb_intern_atom(
+		connection, 0, strlen("WM_PROTOCOLS"), "WM_PROTOCOLS"
+	);
+	xcb_intern_atom_reply_t *wmDeleteReply =
+		xcb_intern_atom_reply(connection, wmDeleteCookie, NULL);
+	xcb_intern_atom_reply_t *wmProtocolsReply =
+		xcb_intern_atom_reply(connection, wmProtocolsCookie, NULL);
+		
+	xcb_change_property(
+		connection, XCB_PROP_MODE_REPLACE, window,
+		wmProtocolsReply->atom, 4, 32, 1, &wmDeleteReply->atom
+	);
+	
+	/* Predictable autorepeat is essential for correct input management
+	 * When a key is hold down :
+	 * - Without predictable autorepeat, the application will receive :
+	 *   "key_pressed", "key_released", "key_pressed", "key_released"
+	 * - With predictable autorepeat, the application will receive :
+	 *   "key_pressed, "key_pressed", ..., "key_released"
+	 * Which helps differentiate between autorepeat and the same key
+	 * actually pressed multiple times.
+	 */
 	xcb_xkb_use_extension(connection, 1, 0);
-  xcb_xkb_per_client_flags_cookie_t repeat =
-		xcb_xkb_per_client_flags(
-			connection,
-			XCB_XKB_ID_USE_CORE_KBD,
-			XCB_XKB_PER_CLIENT_FLAG_DETECTABLE_AUTO_REPEAT,
-			XCB_XKB_PER_CLIENT_FLAG_DETECTABLE_AUTO_REPEAT,
-			0,0,0);
-	
-	xcb_xkb_per_client_flags_reply_t * pcf_reply =
-		xcb_xkb_per_client_flags_reply(
-			connection, repeat, NULL
-		);
-	
-	if (!pcf_reply) LOG("%p!???\n", pcf_reply);
-
+	xcb_xkb_per_client_flags_cookie_t repeat = xcb_xkb_per_client_flags(
+		connection,
+		XCB_XKB_ID_USE_CORE_KBD,
+		XCB_XKB_PER_CLIENT_FLAG_DETECTABLE_AUTO_REPEAT,
+		XCB_XKB_PER_CLIENT_FLAG_DETECTABLE_AUTO_REPEAT,
+		0,0,0
+	);
 
   ESContext.native_display = display;
   ESContext.window_width = width;
@@ -263,32 +286,36 @@ struct is_moving {
 unsigned int UserInterrupt() {
 
 	xcb_generic_event_t * event;
-  xcb_connection_t * const connection =
-		ESContext.connection;
+  xcb_connection_t * const connection = ESContext.connection;
   unsigned int interrupted = 0;
 
-  while ((event = xcb_poll_for_event (connection))) {
-		unsigned int response = event->response_type & ~0x80;
+  while ((event = xcb_poll_for_event(connection))) {
+		unsigned int response = (event->response_type & ~0x80);
     switch(response) {
+			case XCB_CLIENT_MESSAGE: {
+				LOG("???\n");
+				interrupted = 1;
+			}
+			break;
       case XCB_BUTTON_PRESS: {
 				// Values definitions after a label borks the compiler
 				xcb_button_press_event_t *bp =
 					(xcb_button_press_event_t *) event;
-				
-        unsigned int
-          x = bp->event_x,
-          y = bp->event_y,
-          button = bp->detail;
-        unsigned long click_time = bp->time;
+				unsigned int
+					x = bp->event_x,
+					y = bp->event_y,
+					button = bp->detail;
+				unsigned long click_time = bp->time;
 
 				if (is_moving.button == 0) {
 					is_moving.button = button;
 				  is_moving.start_x = x;
 					is_moving.start_y = y;
 				}
-        if (click_time - last_click > 250) myy_click(x, y, button);
-        else myy_doubleclick(x, y, button);
-        last_click = click_time;
+				if (click_time - last_click > 250)
+					myy_click(x, y, button);
+				else myy_doubleclick(x, y, button);
+				last_click = click_time;
 			}
 			break;
 			case XCB_BUTTON_RELEASE: {
@@ -299,7 +326,7 @@ unsigned int UserInterrupt() {
 				xcb_motion_notify_event_t * motion =
 					(xcb_motion_notify_event_t *) event;
 				
-        if (is_moving.button == 0)
+				if (is_moving.button == 0)
 					myy_hover(motion->event_x, motion->event_y);
 				else
 					myy_move(
@@ -308,11 +335,11 @@ unsigned int UserInterrupt() {
 					);
 			}
 			break;
-      case XCB_KEY_PRESS: {
+			case XCB_KEY_PRESS: {
 				xcb_key_press_event_t * kp = (xcb_key_press_event_t *) event;
-        myy_key(kp->detail);
+				myy_key(kp->detail);
 			}
-      break;
+			break;
 			case XCB_KEY_RELEASE: {
 				xcb_key_press_event_t * kp = (xcb_key_press_event_t *) event;
 				myy_key_release(kp->detail);
@@ -320,6 +347,7 @@ unsigned int UserInterrupt() {
 			break;
 			case XCB_DESTROY_NOTIFY:
 			case XCB_UNMAP_NOTIFY: {
+				LOG("Blargh ! Deading !\n");
 				interrupted = 1;
 			}
 			break;
@@ -327,6 +355,11 @@ unsigned int UserInterrupt() {
     free(event);
   }
 
+  /*
+xcb_intern_atom_cookie_t cookie2 = xcb_intern_atom(c, 1, 17, "WM_DELETE_WINDOWS");
+xcb_intern_atom_reply_t* reply2 = xcb_intern_atom_reply(c, cookie2, 0);
+
+xcb_change_property(c, XCB_PROP_MODE_REPLACE, w, (*reply).atom, 4, 32, 1, &reply2->atom);*/
   return interrupted;
 }
 
