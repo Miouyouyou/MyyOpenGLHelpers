@@ -220,7 +220,7 @@ void myy_codepoints_to_glyph_twotris_quads_window_coords
 
 }
 
-unsigned int myy_single_string_to_quads
+struct generated_quads myy_single_string_to_quads
 (struct glyph_infos const * __restrict const glyph_infos,
  uint8_t const * __restrict string,
  uint8_t const * __restrict const quads_buffer_address,
@@ -245,10 +245,14 @@ unsigned int myy_single_string_to_quads
 	uintptr_t const quads_address_end   = quads_buffer+stored_quads;
 	uintptr_t const end_offset = quads_address_end - quads_address_start;
 	
-	return (unsigned int) end_offset;
+	struct generated_quads generated_quads = {
+		.count = stored_quads,
+		.size  = end_offset
+	};
+	return generated_quads;
 }
 
-unsigned int myy_strings_to_quads_va
+struct generated_quads myy_strings_to_quads_va
 (struct glyph_infos const * __restrict const glyph_infos,
  unsigned int const n_strings,
  uint8_t const * const * __restrict const strings,
@@ -286,7 +290,11 @@ unsigned int myy_strings_to_quads_va
 		offset.y_offset += vertical_offset_px; // next line
 	}
 	
-	return stored_quads;
+	struct generated_quads generated_quads = {
+		.count = stored_quads,
+		.size = stored_quads * sizeof(US_two_tris_quad_3D)
+	};
+	return generated_quads;
 }
 
 

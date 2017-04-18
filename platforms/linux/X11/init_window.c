@@ -293,7 +293,8 @@ unsigned int UserInterrupt() {
 		unsigned int response = (event->response_type & ~0x80);
     switch(response) {
 			case XCB_CLIENT_MESSAGE: {
-				LOG("???\n");
+				// Terrible hack. We should check the message content.
+				// That said, we only listen for close events so...
 				interrupted = 1;
 			}
 			break;

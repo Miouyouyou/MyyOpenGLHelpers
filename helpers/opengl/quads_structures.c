@@ -67,3 +67,75 @@ void US_two_tris_quad_3D_draw_pixelscoords
 	);
 	glDrawArrays(GL_TRIANGLES, 0, n_quads*n_corners_two_tris_quad);
 }
+
+void SuB_2t_colored_quad_store
+(int32_t const left, int32_t const top,
+ int32_t const right, int32_t const bottom,
+ SuB_2t_colored_quad * __restrict const quad,
+ uint8_t const r, uint8_t const g, uint8_t const b,
+ uint8_t const a)
+{
+	quad->points[topleft_corner].x             = left;
+	quad->points[topleft_corner].y             = top;
+	quad->points[topleft_corner].r             = r;
+	quad->points[topleft_corner].g             = g;
+	quad->points[topleft_corner].b             = b;
+	quad->points[topleft_corner].a             = a;
+
+	quad->points[bottomleft_corner].x          = left;
+	quad->points[bottomleft_corner].y          = bottom;
+	quad->points[bottomleft_corner].r          = r;
+	quad->points[bottomleft_corner].g          = g;
+	quad->points[bottomleft_corner].b          = b;
+	quad->points[bottomleft_corner].a          = a;
+
+	quad->points[topright_corner].x            = right;
+	quad->points[topright_corner].y            = top;
+	quad->points[topright_corner].r            = r;
+	quad->points[topright_corner].g            = g;
+	quad->points[topright_corner].b            = b;
+	quad->points[topright_corner].a            = a;
+
+	quad->points[bottomright_corner].x         = right;
+	quad->points[bottomright_corner].y         = bottom;
+	quad->points[bottomright_corner].r         = r;
+	quad->points[bottomright_corner].g         = g;
+	quad->points[bottomright_corner].b         = b;
+	quad->points[bottomright_corner].a         = a;
+
+	quad->points[repeated_topright_corner].x   = right;
+	quad->points[repeated_topright_corner].y   = top;
+	quad->points[repeated_topright_corner].r   = r;
+	quad->points[repeated_topright_corner].g   = g;
+	quad->points[repeated_topright_corner].b   = b;
+	quad->points[repeated_topright_corner].a   = a;
+
+	quad->points[repeated_bottomleft_corner].x = left;
+	quad->points[repeated_bottomleft_corner].y = bottom;
+	quad->points[repeated_bottomleft_corner].r = r;
+	quad->points[repeated_bottomleft_corner].g = g;
+	quad->points[repeated_bottomleft_corner].b = b;
+	quad->points[repeated_bottomleft_corner].a = a;
+}
+
+void SuB_2t_colored_quad_draw_pixel_coords
+(GLuint const buffer_id,
+ GLuint const xy_attribute, GLuint const rgba_attribute,
+ GLuint const offset,
+ unsigned int const n_quads)
+{
+	glBindBuffer(GL_ARRAY_BUFFER, buffer_id);
+	glVertexAttribPointer(
+		xy_attribute, 2, GL_SHORT, GL_FALSE,
+		sizeof(struct SuB_colored_point_2D),
+		(uint8_t *) (offset+offsetof(struct SuB_colored_point_2D, x))
+	);
+	glVertexAttribPointer(
+		rgba_attribute, 4, GL_UNSIGNED_BYTE, GL_TRUE,
+		sizeof(struct SuB_colored_point_2D),
+		(uint8_t *) (offset+offsetof(struct SuB_colored_point_2D, r))
+	);
+	
+	glDrawArrays(GL_TRIANGLES, 0, n_quads*n_corners_two_tris_quad);
+
+}

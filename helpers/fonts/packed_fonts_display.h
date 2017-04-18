@@ -11,7 +11,7 @@ struct qinfos {
 };
 
 struct text_offset {
-	int16_t x_offset, y_offset;
+	unsigned int x_offset, y_offset;
 };
 
 int16_t myy_glyph_to_twotris_quad
@@ -50,11 +50,17 @@ int16_t myy_glyph_to_qinfos
  struct qinfos * __restrict const quad,
  int16_t x_offset_px);
 
-unsigned int myy_strings_to_quads_va
+struct generated_quads myy_strings_to_quads_va
 (struct glyph_infos const * __restrict const glyph_infos,
  unsigned int const n_strings,
  uint8_t const * const * __restrict const strings,
  uint8_t * __restrict const buffer,
  int16_t const vertical_offset_px);
+
+struct generated_quads myy_single_string_to_quads
+(struct glyph_infos const * __restrict const glyph_infos,
+ uint8_t const * __restrict string,
+ uint8_t const * __restrict const quads_buffer_address,
+ struct text_offset * __restrict const text_offset);
 
 #endif

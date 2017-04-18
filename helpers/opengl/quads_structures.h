@@ -5,6 +5,16 @@
 #include <myy/helpers/struct.h>
 #include <stdint.h>
 
+enum quad_coords_order {
+	topleft_corner, bottomleft_corner, topright_corner, bottomright_corner,
+	repeated_topright_corner, repeated_bottomleft_corner,
+	n_corners_two_tris_quad
+};
+
+struct generated_quads {
+	int16_t count, size;
+};
+
 struct point_2D { GLfloat x, y; } __PALIGN__;
 struct point_3D { GLfloat x, y, z; } __PALIGN__;
 struct triangle_2D { struct point_2D a, b, c; } __PALIGN__;
@@ -117,7 +127,22 @@ union US_two_triangles_textured_quad_2D_representations {
 	struct US_textured_point_2D points[6];
 } __PALIGN__;
 
-struct US_textured_point_3D { GLushort s, t; GLshort x, y, z; } __PALIGN__;
+struct SuB_colored_point_2D { GLshort x, y; GLubyte r, g, b, a; }
+__PALIGN__;
+struct SuB_colored_triangle_2D {
+	struct SuB_colored_point_2D a, b, c;
+} __PALIGN__;
+struct SuB_two_triangles_colored_quad_2D {
+	struct SuB_colored_triangle_2D first, second;
+};
+
+union SuB_two_triangles_colored_quad_2D_representations {
+	struct SuB_two_triangles_colored_quad_2D quad;
+	struct SuB_colored_triangle_2D triangles[2];
+	struct SuB_colored_point_2D points[6];
+} __PALIGN__;
+
+struct US_textured_point_3D { GLshort x, y, z; GLushort s, t; } __PALIGN__;
 struct US_textured_triangle_3D { struct US_textured_point_3D a, b, c; } __PALIGN__;
 struct US_two_triangles_textured_quad_3D { struct US_textured_triangle_3D first, second; } __PALIGN__;
 
@@ -127,8 +152,31 @@ union US_two_triangles_textured_quad_3D_representations {
 	struct US_textured_point_3D points[6];
 } __PALIGN__;
 
+struct SuSuB_textured_colored_point_3D {
+	GLshort x, y, z;
+	GLushort s, t;
+	GLubyte r, g, b, a;
+};
+
+struct SuSuB_textured_colored_triangle_3D { 
+	struct SuSuB_textured_colored_point_3D a, b, c;
+} __PALIGN__;
+struct SuSuB_2t_textured_colored_quad_3D {
+	struct SuSuB_textured_colored_triangle_3D first, second;
+} __PALIGN__;
+
+union SuSuB_2t_textured_colored_quad_3D_representations {
+	struct SuSuB_2t_textured_colored_quad_3D quad;
+	struct SuSuB_textured_colored_triangle_3D triangles[2];
+	struct SuSuB_textured_colored_point_3D points[6];
+} __PALIGN__;
+
 typedef union US_two_triangles_textured_quad_2D_representations US_two_tris_quad;
 typedef union US_two_triangles_textured_quad_3D_representations US_two_tris_quad_3D;
+typedef union SuB_two_triangles_colored_quad_2D_representations
+SuB_2t_colored_quad;
+typedef union SuSuB_2t_textured_colored_quad_3D_representations
+SuSuB_2t_colored_quad_3D;
 
 void US_two_tris_quad_3D_store
 (US_two_tris_quad_3D * __restrict const quads,
@@ -144,11 +192,17 @@ void US_two_tris_quad_3D_draw_pixelscoords
  GLuint const offset,
  unsigned int const n_quads);
 
-enum quad_coords_order {
-	topleft_corner, bottomleft_corner, topright_corner, bottomright_corner,
-	repeated_topright_corner, repeated_bottomleft_corner,
-	n_corners_two_tris_quad
-};
+void SuB_2t_colored_quad_store
+(int32_t const left, int32_t const top,
+ int32_t const right, int32_t const bottom,
+ SuB_2t_colored_quad * __restrict const quad,
+ uint8_t const r, uint8_t const g, uint8_t const b,
+ uint8_t const a);
 
+void SuB_2t_colored_quad_draw_pixel_coords
+(GLuint const buffer_id,
+ GLuint const xy_attribute, GLuint const rgba_attribute,
+ GLuint const offset,
+ unsigned int const n_quads);
 
 #endif

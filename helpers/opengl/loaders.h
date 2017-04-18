@@ -2,7 +2,7 @@
 #define MYY_SRC_HELPERS_OPENGL_LOADERS 1
 
 #include <myy/current/opengl.h>
-#include <myy/generated/opengl/data_config.h>
+#include <src/generated/opengl/data_config.h>
 #include <stdint.h>
 
 int glhLoadShader
