@@ -430,6 +430,11 @@ static void page_flip_handler
 	*waiting_for_flip = 0;
 }
 
+static void stop(unsigned int * __restrict const running)
+{
+	*running = 0;
+}
+
 int main(int argc, char *argv[])
 {
 	struct egl_infos egl;
@@ -446,8 +451,8 @@ int main(int argc, char *argv[])
 	int ret;
 
 	/* Prepare to read input from Evdev */
-	struct myy_evdev_data evdev_data;
-	ret = myy_init_input_devices(&evdev_data, 1);
+	struct myy_evdev_devices evdev_devices;
+	ret = myy_init_input_devices(&evdev_devices);
 	if (!ret) {
 		LOG("Meow ? Where's the mouse ?\n"
 		    "Mouse input device not found.\n"
@@ -497,14 +502,23 @@ int main(int argc, char *argv[])
 		goto program_end;
 	}
 
+	int running = 1;
 	/* Initialise our 'engine' */
+	
+	// Platform handlers
+	struct myy_platform_handlers * __restrict const platform_handlers =
+		myy_get_platform_handlers();
+	platform_handlers->stop = stop;
+	platform_handlers->stop_data = &running;
+	
+	// State and draw
 	myy_generate_new_state();
 	myy_init_drawing();
 	myy_display_initialised(
 	  gbm_bo_get_width(bo),
 	  gbm_bo_get_height(bo)
 	);
-	while (1) {
+	while (running) {
 		struct gbm_bo *next_bo;
 		int waiting_for_flip = 1;
 
@@ -539,7 +553,7 @@ int main(int argc, char *argv[])
 			 * loop, this could be rewritten like this :
 			 *   do { ... } while (waiting_for_flip)
 			*/
-			myy_evdev_read_input(&evdev_data);
+			myy_evdev_read_input(&evdev_devices);
 			ret = select(drm.fd + 1, &fds, NULL, NULL, NULL);
 			if (ret < 0) {
 				LOG("select err: %s\n", strerror(errno));
@@ -570,7 +584,7 @@ int main(int argc, char *argv[])
 	  &drm.connector_id, 1, &prev_crtc->mode
 	);
 program_end:
-	myy_free_input_devices(&evdev_data, 1);
+	myy_free_input_devices(&evdev_devices);
 no_mouse:
 	return ret;
 }

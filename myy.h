@@ -32,12 +32,21 @@ struct myy_game_state {
   uint8_t state[228];
 };
 
+struct myy_platform_handlers {
+	void (*stop)();
+	void * stop_data;
+};
+
+struct myy_platform_handlers * myy_get_platform_handlers();
 void myy_display_initialised(unsigned int width, unsigned int height);
 void myy_init();
 void myy_init_drawing();
 void myy_draw();
 void myy_cleanup_drawing();
 void myy_stop();
+/* User quit is a "Quit" action performed by the user, using the program
+ * UI. This is different from closing the window abruptly. */
+void myy_user_quit();
 
 void myy_generate_new_state();
 void myy_save_state(struct myy_game_state *state);
