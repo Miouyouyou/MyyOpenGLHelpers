@@ -284,11 +284,10 @@ struct is_moving {
 } is_moving = {0};
 
 #include <stdlib.h>
-unsigned int UserInterrupt() {
+void ParseEvents() {
 
 	xcb_generic_event_t * event;
   xcb_connection_t * const connection = ESContext.connection;
-  unsigned int interrupted = 0;
 
   while ((event = xcb_poll_for_event(connection))) {
 		unsigned int response = (event->response_type & ~0x80);
@@ -296,7 +295,7 @@ unsigned int UserInterrupt() {
 			case XCB_CLIENT_MESSAGE: {
 				// Terrible hack. We should check the message content.
 				// That said, we only listen for close events so...
-				interrupted = 1;
+				myy_user_quit();
 			}
 			break;
 			case XCB_RESIZE_REQUEST: {
@@ -346,31 +345,27 @@ unsigned int UserInterrupt() {
 			}
 			break;
 			case XCB_KEY_PRESS: {
+				// Keyboards values are shifted by 3 with X11, for
+				// 'historical' reasons.
 				xcb_key_press_event_t * kp = (xcb_key_press_event_t *) event;
-				myy_key(kp->detail);
+				myy_key(kp->detail >> 3);
 			}
 			break;
 			case XCB_KEY_RELEASE: {
 				xcb_key_press_event_t * kp = (xcb_key_press_event_t *) event;
-				myy_key_release(kp->detail);
+				myy_key_release(kp->detail >> 3);
 			}
 			break;
 			case XCB_DESTROY_NOTIFY:
 			case XCB_UNMAP_NOTIFY: {
 				LOG("Blargh ! Deading !\n");
-				interrupted = 1;
 			}
 			break;
     }
     free(event);
   }
 
-  /*
-xcb_intern_atom_cookie_t cookie2 = xcb_intern_atom(c, 1, 17, "WM_DELETE_WINDOWS");
-xcb_intern_atom_reply_t* reply2 = xcb_intern_atom_reply(c, cookie2, 0);
-
-xcb_change_property(c, XCB_PROP_MODE_REPLACE, w, (*reply).atom, 4, 32, 1, &reply2->atom);*/
-  return interrupted;
+  return;
 }
 
 static void Terminate() {

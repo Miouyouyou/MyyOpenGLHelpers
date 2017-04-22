@@ -28,20 +28,32 @@
 #include <string.h>
 #include "init_window.h"
 
+static void stop(unsigned int * running) {
+	*running = 0;
+}
+
 int main() {
 
-  if (!CreateWindowWithEGLContext("Nya !", 1280, 720)) exit(1);
-  myy_generate_new_state();
-  myy_init_drawing();
+	if (!CreateWindowWithEGLContext("Nya !", 1280, 720)) exit(1);
+	myy_generate_new_state();
+	myy_init_drawing();
 	myy_display_initialised(1280, 720);
 
-  while(!UserInterrupt()) {
-    myy_draw();
-    myy_after_draw();
-    RefreshWindow();
-  }
+	unsigned int running = 1;
+	struct myy_platform_handlers * handlers =
+		myy_get_platform_handlers();
+	
+	handlers->stop = stop;
+	handlers->stop_data = &running;
+	
+	while(running) {
+		ParseEvents();
+		myy_draw();
+		myy_after_draw();
+		RefreshWindow();
+	}
 
-  myy_stop();
-  myy_cleanup_drawing();
+	myy_stop();
+	myy_cleanup_drawing();
 
 }

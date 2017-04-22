@@ -59,7 +59,7 @@ EGLBoolean CreateEGLContext
 (const char * const title, const int width, const int height);
 EGLBoolean CreateWindowWithEGLContext
 (const char * const title, const int width, const int height);
-unsigned int UserInterrupt();
+void ParseEvents();
 void RefreshWindow();
 
 #endif

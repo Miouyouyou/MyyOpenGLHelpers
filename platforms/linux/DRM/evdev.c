@@ -54,9 +54,11 @@ static void parse_keyboard_event
 	fprintf(
 		stderr,
 		"[parse_keyboard_event]\n"
-		"  event_type : %s - event_code - %s\n",
+		"  event_type : %s (%d) - event_code - %s\n (%d)",
 		libevdev_event_type_get_name(event->type),
-		libevdev_event_code_get_name(event->type, event->code)
+		event->type,
+		libevdev_event_code_get_name(event->type, event->code),
+		event->code
 	);
 }
 
