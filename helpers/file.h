@@ -113,6 +113,7 @@ struct myy_fh_map_handle {
 	unsigned int ok;
 	void const * address;
 	int length;
+	intptr_t id;
 };
 
 /**

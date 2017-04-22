@@ -257,16 +257,20 @@ struct generated_quads myy_strings_to_quads_va
  unsigned int const n_strings,
  uint8_t const * const * __restrict const strings,
  uint8_t * __restrict const buffer,
- int16_t const vertical_offset_px)
+ int16_t const vertical_offset_px,
+ struct text_offset * __restrict const text_position_px)
 {
 	US_two_tris_quad_3D * __restrict const quads_buffer =
 		(US_two_tris_quad_3D *) buffer;
 
 	unsigned int stored_quads = 0;
-	struct text_offset offset = {.x_offset = 0, .y_offset = 0};
+	struct text_offset offset = {
+		.x_offset = text_position_px->x_offset,
+		.y_offset = text_position_px->y_offset
+	};
 
 	for (unsigned int s = 0; s < n_strings; s++) {
-		offset.x_offset = 0; // line start
+		offset.x_offset = text_position_px->x_offset; // line start
 		uint8_t const * string = strings[s];
 
 		/* Generate the quads representing the current string characters */
@@ -294,7 +298,7 @@ struct generated_quads myy_strings_to_quads_va
 		.count = stored_quads,
 		.size = stored_quads * sizeof(US_two_tris_quad_3D)
 	};
+
 	return generated_quads;
 }
-
 

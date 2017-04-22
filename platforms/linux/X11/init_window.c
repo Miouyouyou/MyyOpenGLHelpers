@@ -91,14 +91,15 @@ xcb_window_t CreateNativeWindow
 	uint32_t mask = XCB_CW_BACK_PIXEL | XCB_CW_EVENT_MASK;
 	uint32_t values[2] = {
 		screen->white_pixel,
-		XCB_EVENT_MASK_EXPOSURE       |
-		XCB_EVENT_MASK_BUTTON_PRESS   |
-		XCB_EVENT_MASK_BUTTON_RELEASE |
-		XCB_EVENT_MASK_POINTER_MOTION |
-		XCB_EVENT_MASK_ENTER_WINDOW   |
-		XCB_EVENT_MASK_LEAVE_WINDOW   |
-		XCB_EVENT_MASK_KEY_PRESS      |
-		XCB_EVENT_MASK_KEY_RELEASE    |
+		XCB_EVENT_MASK_EXPOSURE         |
+		XCB_EVENT_MASK_BUTTON_PRESS     |
+		XCB_EVENT_MASK_BUTTON_RELEASE   |
+		XCB_EVENT_MASK_POINTER_MOTION   |
+		XCB_EVENT_MASK_ENTER_WINDOW     |
+		XCB_EVENT_MASK_LEAVE_WINDOW     |
+		XCB_EVENT_MASK_KEY_PRESS        |
+		XCB_EVENT_MASK_KEY_RELEASE      |
+		XCB_EVENT_MASK_RESIZE_REDIRECT  |
 		XCB_EVENT_MASK_STRUCTURE_NOTIFY
 	};
 	
@@ -296,6 +297,14 @@ unsigned int UserInterrupt() {
 				// Terrible hack. We should check the message content.
 				// That said, we only listen for close events so...
 				interrupted = 1;
+			}
+			break;
+			case XCB_RESIZE_REQUEST: {
+				xcb_resize_request_event_t const * resize =
+					(xcb_resize_request_event_t const *) event;
+				if (resize->width > 0 && resize->height > 0)
+					myy_display_initialised(resize->width, resize->height);
+				
 			}
 			break;
       case XCB_BUTTON_PRESS: {

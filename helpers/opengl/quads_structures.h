@@ -171,8 +171,10 @@ union SuSuB_2t_textured_colored_quad_3D_representations {
 	struct SuSuB_textured_colored_point_3D points[6];
 } __PALIGN__;
 
-typedef union US_two_triangles_textured_quad_2D_representations US_two_tris_quad;
-typedef union US_two_triangles_textured_quad_3D_representations US_two_tris_quad_3D;
+typedef union US_two_triangles_textured_quad_2D_representations
+US_two_tris_quad;
+typedef union US_two_triangles_textured_quad_3D_representations
+US_two_tris_quad_3D;
 typedef union SuB_two_triangles_colored_quad_2D_representations
 SuB_2t_colored_quad;
 typedef union SuSuB_2t_textured_colored_quad_3D_representations

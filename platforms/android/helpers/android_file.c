@@ -106,3 +106,35 @@ int fh_ReadBytesFromFile
 	return read_bytes;
 
 }
+
+struct myy_fh_map_handle fh_MapFileToMemory
+(char const * __restrict const pathname)
+{
+	
+	struct myy_fh_map_handle handle = {
+		.ok = 0,
+		.address = NULL,
+		.length = 0
+	};
+	
+	AAsset * file = AAssetManager_open(
+		myy_assets_manager, pathname, AASSET_MODE_STREAMING
+	);
+	
+	if (file != NULL) {
+		void * __restrict const address = AAsset_getBuffer(file);
+		int asset_length = AAsset_getLength(file);
+		handle.ok = 1;
+		handle.address = address;
+		handle.length = asset_length;
+		handle.id = (intptr_t) file;
+	}
+	
+	return handle;
+}
+
+void fh_UnmapFileFromMemory
+(struct myy_fh_map_handle const handle)
+{
+	AAsset_close((AAsset *) handle.id);
+}

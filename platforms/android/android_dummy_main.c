@@ -1,5 +1,5 @@
 /*
-  Copyright (c) 2016 Miouyouyou <Myy>
+  Copyright (c) 2017 Miouyouyou <Myy>
 
   Permission is hereby granted, free of charge, to any person obtaining
   a copy of this software and associated documentation files 
@@ -40,7 +40,7 @@
 #include <unistd.h>
 
 #include <myy.h>
-#include <myy/egl_common/myy_eglattrs.h>
+#include <myy/current/opengl.h>
 
 #ifdef DEBUG
 #define LOGI(...) ((void)__android_log_print(ANDROID_LOG_INFO, "native-activity", __VA_ARGS__))
@@ -161,6 +161,7 @@ int animating;
  * Process the next input event.
  */
 unsigned long last_tap = 0;
+int16_t start_x = 0, start_y = 0;
 static int32_t engine_handle_input
 (struct android_app * const app, AInputEvent * const event) {
   // int pc = AMotionEvent_getPointerCount(event);
@@ -175,20 +176,21 @@ static int32_t engine_handle_input
        (&current_android_window)->width, (&current_android_window)->height);
   LOGW("Current android window : %p\n", &current_android_window);*/
 
-  unsigned int
-    action = AMotionEvent_getAction(event),
-    x = AMotionEvent_getX(event, 0),
-    y = current_android_window.height - (int) AMotionEvent_getY(event, 0);
+  unsigned int const action = AMotionEvent_getAction(event);
+	int x = AMotionEvent_getX(event, 0);
+	int y = AMotionEvent_getY(event, 0);
+
 
   switch(action) {
   case AMOTION_EVENT_ACTION_DOWN:
+		start_x = x;
+		start_y = y;
     if (tap_time - last_tap > 0x10000000) myy_click(x, y, 1);
     else myy_doubleclick(x, y, 1);
     last_tap = tap_time;
-    //myy_open_website("https://github.com/Miouyouyou/SimpleKlondike");
     break;
   case AMOTION_EVENT_ACTION_MOVE:
-    myy_move(x, y);
+    myy_move(x, y, start_x, start_y);
     break;
   }
 

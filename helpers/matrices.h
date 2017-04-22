@@ -7,7 +7,12 @@
 enum matrix_dimensions { m_x, m_y, m_z, m_w, n_4x4_matrix_dimensions };
 enum vector_elements { vec_x, vec_y, vec_z, vec_w, n_vec_elements };
 
-typedef float vec4 __attribute__ ((vector_size (16)));
+#ifdef __clang__
+#define vector(components,total_size) __attribute__ ((ext_vector_type(components)))
+#else
+#define vector(components,total_size) __attribute__ ((vector_size(total_size)))
+#endif
+typedef float vec4 vector(4,16); // __attribute__ ((vector_size (16)));
 
 struct myy_matrix_4_row { float X, Y, Z, W; } __ALIGN_AT(16);
 
