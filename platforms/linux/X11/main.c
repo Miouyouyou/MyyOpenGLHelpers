@@ -34,12 +34,17 @@ static void stop(unsigned int * running) {
 
 int main() {
 
-	if (!CreateWindowWithEGLContext("Nya !", 1280, 720)) exit(1);
+	struct _escontext global_context;
+	uint8_t context_created = CreateWindowWithEGLContext(
+		"Myy Window", 1280, 720, &global_context
+	);
+	if (!context_created) exit(1);
 	myy_generate_new_state();
 	myy_init_drawing();
 	myy_display_initialised(1280, 720);
 
 	unsigned int running = 1;
+
 	struct myy_platform_handlers * handlers =
 		myy_get_platform_handlers();
 	
@@ -47,13 +52,19 @@ int main() {
 	handlers->stop_data = &running;
 	
 	while(running) {
-		ParseEvents();
+		ParseEvents(global_context.connection);
 		myy_draw();
 		myy_after_draw();
-		RefreshWindow();
+		RefreshWindow(
+			global_context.display, global_context.surface
+		);
 	}
 
 	myy_stop();
 	myy_cleanup_drawing();
+	Terminate(
+		global_context.native_display,
+		global_context.native_window
+	);
 
 }

@@ -12,7 +12,8 @@ const char browser_command_name[] = "xdg-open ";
  *
  *  @param url The URL of the document to browse
  */
-void myy_open_website(const char * restrict const url) {
+void myy_open_website
+(char const * __restrict const url) {
 
   unsigned int url_size = myy_string_size((uint8_t * const) url);
   // Let's avoid blowing up the stack with an URL
@@ -20,7 +21,7 @@ void myy_open_website(const char * restrict const url) {
 
   unsigned int browser_command_full_size =
     SIZEOF_BROWSER_COMMAND + url_size;
-  uint8_t browser_command[browser_command_full_size+1];
+  char browser_command[browser_command_full_size+1];
 
   memcpy(browser_command, browser_command_name, SIZEOF_BROWSER_COMMAND);
   memcpy(browser_command+SIZEOF_BROWSER_COMMAND, url, url_size);

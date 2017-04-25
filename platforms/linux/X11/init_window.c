@@ -63,23 +63,14 @@ static char const * const myy_eglerrors[myy_eglstatus_n] = {
 		"Could not get the visual id of the chosen configuration"
 };
 
-struct _escontext ESContext = {
-  .native_display = NULL,
-  .window_width = 0,
-  .window_height = 0,
-  .native_window  = 0,
-  .display = NULL,
-  .context = NULL,
-  .surface = NULL
-};
-
 #define TRUE 1
 #define FALSE 0
 
 #include <stdlib.h>
 xcb_window_t CreateNativeWindow
-(const char * __restrict const title, const int width, const int height,
- EGLint const visual_id)
+(char const * __restrict const title,
+ int const width, int const height,
+ struct _escontext * __restrict const global_data)
 {
 	Display * display = XOpenDisplay(NULL);
 	xcb_connection_t * const connection = xcb_connect(NULL, NULL);
@@ -114,6 +105,16 @@ xcb_window_t CreateNativeWindow
 		XCB_WINDOW_CLASS_INPUT_OUTPUT,
 		screen->root_visual,
 		mask, values
+	);
+	xcb_change_property(
+		connection,
+		XCB_PROP_MODE_REPLACE,
+		window,
+		XCB_ATOM_WM_NAME,
+		XCB_ATOM_STRING,
+		8,
+		strlen (title),
+		title
 	);
 	xcb_void_cookie_t map_cookie = 
 		xcb_map_window_checked(connection, window);
@@ -161,18 +162,19 @@ xcb_window_t CreateNativeWindow
 		0,0,0
 	);
 
-  ESContext.native_display = display;
-  ESContext.window_width = width;
-  ESContext.window_height = height;
-  ESContext.native_window = window;
-	ESContext.connection = connection;
+  global_data->native_display = display;
+  global_data->window_width   = width;
+  global_data->window_height  = height;
+  global_data->native_window  = window;
+	global_data->connection     = connection;
 	
 	return window;
 }
 
 EGLBoolean CreateEGLContext
 (char const * __restrict const title,
- int const width, int const height)
+ int const width, int const height,
+ struct _escontext * __restrict const global_data)
 {
 	enum myy_eglstatus current_status = myy_eglstatus_no_problem;
 	EGLBoolean return_status = EGL_FALSE;
@@ -192,7 +194,10 @@ EGLBoolean CreateEGLContext
 	EGLint contextAttribs[] =
 		{ MYY_CURRENT_GL_CONTEXT, EGL_NONE, EGL_NONE };
 
-	EGLDisplay display = eglGetDisplay( ESContext.display );
+	xcb_window_t native_window =
+		CreateNativeWindow(title, width, height, global_data);
+	EGLDisplay display = 
+		eglGetDisplay( global_data->native_display );
 	if ( display == EGL_NO_DISPLAY ) {
 		current_status = myy_eglstatus_eglGetDisplay;
 		goto print_current_egl_status_and_return;
@@ -234,8 +239,7 @@ EGLBoolean CreateEGLContext
 		goto print_current_egl_status_and_return;
 	}
 	
-	xcb_window_t native_window =
-		CreateNativeWindow(title, width, height, eglConfAttrVisualID);
+
 	// Create a surface
 	surface = eglCreatePlatformWindowSurface(
 		display, config, &native_window, NULL
@@ -252,9 +256,9 @@ EGLBoolean CreateEGLContext
 		goto print_current_egl_status_and_return;
 	}
 
-	ESContext.display = display;
-	ESContext.surface = surface;
-	ESContext.context = context;
+	global_data->display = display;
+	global_data->surface = surface;
+	global_data->context = context;
 	return_status = EGL_TRUE;
 
 print_current_egl_status_and_return:
@@ -265,14 +269,18 @@ print_current_egl_status_and_return:
 	return return_status;
 }
 
-void RefreshWindow() {
-	eglSwapBuffers(ESContext.display, ESContext.surface);
+void RefreshWindow
+(EGLDisplay const display, EGLSurface const surface)
+{
+	eglSwapBuffers(display, surface);
 }
 
 EGLBoolean CreateWindowWithEGLContext
 (const char * __restrict const title,
- const int width, const int height) {
-  return CreateEGLContext(title, width, height);
+ const int width, const int height,
+ struct _escontext * __restrict const global_data)
+{
+  return CreateEGLContext(title, width, height, global_data);
 }
 
 
@@ -284,14 +292,15 @@ struct is_moving {
 } is_moving = {0};
 
 #include <stdlib.h>
-void ParseEvents() {
+void ParseEvents
+(xcb_connection_t * const connection)
+{
 
 	xcb_generic_event_t * event;
-  xcb_connection_t * const connection = ESContext.connection;
 
-  while ((event = xcb_poll_for_event(connection))) {
+	while ((event = xcb_poll_for_event(connection))) {
 		unsigned int response = (event->response_type & ~0x80);
-    switch(response) {
+			switch(response) {
 			case XCB_CLIENT_MESSAGE: {
 				// Terrible hack. We should check the message content.
 				// That said, we only listen for close events so...
@@ -306,7 +315,7 @@ void ParseEvents() {
 				
 			}
 			break;
-      case XCB_BUTTON_PRESS: {
+			case XCB_BUTTON_PRESS: {
 				// Values definitions after a label borks the compiler
 				xcb_button_press_event_t *bp =
 					(xcb_button_press_event_t *) event;
@@ -331,7 +340,7 @@ void ParseEvents() {
 				is_moving.button = 0;
 				break;
 			}
-      case XCB_MOTION_NOTIFY: {
+			case XCB_MOTION_NOTIFY: {
 				xcb_motion_notify_event_t * motion =
 					(xcb_motion_notify_event_t *) event;
 				
@@ -347,12 +356,14 @@ void ParseEvents() {
 			case XCB_KEY_PRESS: {
 				// Keyboards values are shifted by 3 with X11, for
 				// 'historical' reasons.
-				xcb_key_press_event_t * kp = (xcb_key_press_event_t *) event;
+				xcb_key_press_event_t * kp =
+					(xcb_key_press_event_t *) event;
 				myy_key(kp->detail >> 3);
 			}
 			break;
 			case XCB_KEY_RELEASE: {
-				xcb_key_press_event_t * kp = (xcb_key_press_event_t *) event;
+				xcb_key_press_event_t * kp =
+					(xcb_key_press_event_t *) event;
 				myy_key_release(kp->detail >> 3);
 			}
 			break;
@@ -368,12 +379,10 @@ void ParseEvents() {
   return;
 }
 
-static void Terminate() {
-  Display *display = ESContext.native_display;
-  Window window = ESContext.native_window;
-
-  if (window) XDestroyWindow( ESContext.native_display, window );
-
+void Terminate
+(Display * display, Window window)
+{
+  if (window) XDestroyWindow( display, window );
   XCloseDisplay( display );
 }
 

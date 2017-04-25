@@ -229,7 +229,7 @@ struct generated_quads myy_single_string_to_quads
 	US_two_tris_quad_3D * __restrict const quads_buffer =
 		(US_two_tris_quad_3D *) quads_buffer_address;
 	
-	unsigned int stored_quads = 0;
+	uint16_t stored_quads = 0;
 	while (*string) {
 		struct utf8_codepoint const utf8_codepoint = 
 			utf8_codepoint_and_size(string);
@@ -241,13 +241,9 @@ struct generated_quads myy_single_string_to_quads
 		stored_quads++;
 	}
 	
-	uintptr_t const quads_address_start = quads_buffer;
-	uintptr_t const quads_address_end   = quads_buffer+stored_quads;
-	uintptr_t const end_offset = quads_address_end - quads_address_start;
-	
 	struct generated_quads generated_quads = {
 		.count = stored_quads,
-		.size  = end_offset
+		.size  = (uint16_t) (stored_quads * sizeof(US_two_tris_quad_3D))
 	};
 	return generated_quads;
 }
@@ -263,7 +259,7 @@ struct generated_quads myy_strings_to_quads_va
 	US_two_tris_quad_3D * __restrict const quads_buffer =
 		(US_two_tris_quad_3D *) buffer;
 
-	unsigned int stored_quads = 0;
+	uint16_t stored_quads = 0;
 	struct text_offset offset = {
 		.x_offset = text_position_px->x_offset,
 		.y_offset = text_position_px->y_offset

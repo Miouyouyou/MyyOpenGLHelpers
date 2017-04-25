@@ -53,13 +53,22 @@ struct _escontext
 };
 
 xcb_window_t CreateNativeWindow
-(const char * const title, const int width, const int height,
- EGLint const visual_id);
+(char const * __restrict const title,
+ int const width, int const height,
+ struct _escontext * __restrict const global_data);
 EGLBoolean CreateEGLContext
-(const char * const title, const int width, const int height);
+(char const * __restrict const title,
+ int const width, int const height,
+ struct _escontext * __restrict const global_data);
 EGLBoolean CreateWindowWithEGLContext
-(const char * const title, const int width, const int height);
-void ParseEvents();
-void RefreshWindow();
+(const char * __restrict const title,
+ const int width, const int height,
+ struct _escontext * __restrict const global_data);
+void ParseEvents
+(xcb_connection_t * const connection);
+void RefreshWindow
+(EGLDisplay const display, EGLSurface const surface);
+void Terminate
+(Display * display, Window window);
 
 #endif

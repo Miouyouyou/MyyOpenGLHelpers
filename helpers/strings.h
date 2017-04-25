@@ -46,7 +46,8 @@
  * @param string The byte array where the UTF-8 sequence will be
  *               stored
  */
-void utf32_to_utf8_string(uint32_t code, char * string);
+void utf32_to_utf8_string
+(uint32_t const code, char * __restrict const stringg);
 
 static inline unsigned int myy_string_size(const uint8_t * const string) {
 	unsigned int c = 0;
@@ -81,6 +82,7 @@ struct utf8_codepoint {
  * @return A struct utf8_codepoint providing the UTF-32 codepoint value
  *         and the size, in octets, of the UTF-8 encoded codepoint.
  */
-struct utf8_codepoint utf8_codepoint_and_size(uint8_t * string);
+struct utf8_codepoint utf8_codepoint_and_size
+(uint8_t const * __restrict const string);
 
 #endif

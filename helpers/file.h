@@ -26,6 +26,13 @@
 
 #include <stdint.h>
 
+struct myy_fh_map_handle {
+	unsigned int ok;
+	void * address;
+	int length;
+	intptr_t id;
+};
+
 /** Read `size` bytes from the file at `pathname` into `buffer`
  * 
  * ASSUMPTIONS :
@@ -108,13 +115,6 @@ int fh_ReadBytesFromFile
 unsigned int fh_WholeFileToBuffer
 (char const * __restrict const pathname,
  void * __restrict const buffer);
-
-struct myy_fh_map_handle {
-	unsigned int ok;
-	void const * address;
-	int length;
-	intptr_t id;
-};
 
 /**
  * Map an entire file in memory (mmap).

@@ -26,10 +26,10 @@ void myy_matrix_4x4_identity
 {
 	union myy_4x4_matrix const identity_4x4 = {
 		.vec_rows = {
-		  {1,0,0,0},
-		  {0,1,0,0},
-		  {0,0,1,0},
-		  {0,0,0,1}
+		  {1.0f,0.0f,0.0f,0.0f},
+		  {0.0f,1.0f,0.0f,0.0f},
+		  {0.0f,0.0f,1.0f,0.0f},
+		  {0.0f,0.0f,0.0f,1.0f}
 		}
 	};
 
@@ -50,7 +50,11 @@ void myy_matrix_4x4_mult
 
 	union myy_4x4_matrix result_matrix = {0};
 
-	for (enum matrix_dimensions d = 0; d < n_4x4_matrix_dimensions; d++) {
+	for (
+		unsigned int d = m_x;
+		d < n_4x4_matrix_dimensions;
+		d++
+	) {
 		vec4 const matrix_row = matrix_stack->vec_rows[d];
 		float const
 		  x = matrix_row[0],
@@ -77,10 +81,10 @@ void myy_matrix_4x4_ortho_layered_window_coords
 
 	union myy_4x4_matrix const ortho_matrix = {
 		.vec_rows = {
-			{2.0/width, 0, 0, 0},
-			{0, -2.0/height, 0, 0},
-			{0, 0, 1.0/layers, 0},
-			{-1, 1, 0, 1}
+			{2.0f/width, 0, 0, 0},
+			{0, -2.0f/height, 0, 0},
+			{0, 0, 1.0f/layers, 0},
+			{-1.0f, 1.0f, 0, 1.0f}
 		}
 	};
 	myy_matrix_4x4_print(&ortho_matrix);
@@ -95,10 +99,10 @@ void myy_matrix_4x4_ortho_layered
 
 	union myy_4x4_matrix const ortho_matrix = {
 		.vec_rows = {
-			{2.0/width, 0, 0, 0},
-			{0, 2.0/height, 0, 0},
-			{0, 0, 1.0/layers, 0},
-			{-1, -1, 0, 1}
+			{2.0f/width, 0, 0, 0},
+			{0, 2.0f/height, 0, 0},
+			{0, 0, 1.0f/layers, 0},
+			{-1.0f, -1.0f, 0, 1.0f}
 		}
 	};
 	myy_matrix_4x4_print(&ortho_matrix);

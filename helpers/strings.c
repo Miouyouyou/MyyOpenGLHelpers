@@ -41,7 +41,9 @@
  * @param string The byte array where the UTF-8 sequence will be
  *               stored
  */
-void utf32_to_utf8_string(uint32_t code, char * string) {
+void utf32_to_utf8_string
+(uint32_t const code, char * __restrict const string)
+{
 	if (code < 0x80) string[0] = code;
 	else if (code < 0x800) {   // 00000yyy yyxxxxxx
 		string[0] = (0b11000000 | (code >> 6));
@@ -60,7 +62,8 @@ void utf32_to_utf8_string(uint32_t code, char * string) {
 	}
 }
 
-struct utf8_codepoint utf8_codepoint_and_size(uint8_t * string)
+struct utf8_codepoint utf8_codepoint_and_size
+(uint8_t const * __restrict const string)
 {
 	uint8_t current_char = string[0];
 	unsigned int codepoint = 0;

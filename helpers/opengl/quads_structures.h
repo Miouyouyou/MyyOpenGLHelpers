@@ -12,7 +12,7 @@ enum quad_coords_order {
 };
 
 struct generated_quads {
-	int16_t count, size;
+	uint16_t count, size;
 };
 
 struct point_2D { GLfloat x, y; } __PALIGN__;
