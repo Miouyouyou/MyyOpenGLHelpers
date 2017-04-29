@@ -33,8 +33,15 @@
 
 #include <myy.h>
 
-/* eglplatform.h implicitly include X11 libraries */
-static Atom destroy;
+struct myy_xcb_state {
+	xcb_connection_t * connection;
+	/* If too many values like this exist, a structure will be needed */
+	unsigned long last_click;
+	struct {
+		uint32_t button;
+		uint16_t start_x, start_y;
+	} is_moving;
+};
 
 struct _escontext
 {
@@ -49,8 +56,12 @@ struct _escontext
 	/// EGL surface
 	EGLSurface  surface;
 
-	xcb_connection_t * connection;
+	struct myy_xcb_state xcb_state;
 };
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 xcb_window_t CreateNativeWindow
 (char const * __restrict const title,
@@ -64,11 +75,16 @@ EGLBoolean CreateWindowWithEGLContext
 (const char * __restrict const title,
  const int width, const int height,
  struct _escontext * __restrict const global_data);
-void ParseEvents
-(xcb_connection_t * const connection);
 void RefreshWindow
 (EGLDisplay const display, EGLSurface const surface);
 void Terminate
 (Display * display, Window window);
+
+#ifdef __cplusplus
+}
+#endif
+
+void ParseEvents
+(struct myy_xcb_state * __restrict const state);
 
 #endif

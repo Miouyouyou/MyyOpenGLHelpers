@@ -1,5 +1,5 @@
 /*
-  Copyright (c) 2016 Miouyouyou <Myy>
+  Copyright (c) 2017 Miouyouyou <Myy>
 
   Permission is hereby granted, free of charge, to any person obtaining
   a copy of this software and associated documentation files 
@@ -22,7 +22,12 @@
 */
 #include "init_window.h"
 
+#define TRUE 1
+#define FALSE 0
+
 #include <string.h>
+#include <stdlib.h>
+
 #include <myy/current/opengl.h>
 #include <myy/helpers/strings.h>
 #include <myy/helpers/log.h>
@@ -63,10 +68,6 @@ static char const * const myy_eglerrors[myy_eglstatus_n] = {
 		"Could not get the visual id of the chosen configuration"
 };
 
-#define TRUE 1
-#define FALSE 0
-
-#include <stdlib.h>
 xcb_window_t CreateNativeWindow
 (char const * __restrict const title,
  int const width, int const height,
@@ -166,7 +167,8 @@ xcb_window_t CreateNativeWindow
   global_data->window_width   = width;
   global_data->window_height  = height;
   global_data->native_window  = window;
-	global_data->connection     = connection;
+	
+	global_data->xcb_state.connection = connection;
 	
 	return window;
 }
@@ -284,100 +286,6 @@ EGLBoolean CreateWindowWithEGLContext
 }
 
 
-/* If too many values like this exist, a structure will be needed */
-unsigned long last_click = 0;
-struct is_moving {
-	uint32_t button;
-	uint16_t start_x, start_y;
-} is_moving = {0};
-
-#include <stdlib.h>
-void ParseEvents
-(xcb_connection_t * const connection)
-{
-
-	xcb_generic_event_t * event;
-
-	while ((event = xcb_poll_for_event(connection))) {
-		unsigned int response = (event->response_type & ~0x80);
-			switch(response) {
-			case XCB_CLIENT_MESSAGE: {
-				// Terrible hack. We should check the message content.
-				// That said, we only listen for close events so...
-				myy_user_quit();
-			}
-			break;
-			case XCB_RESIZE_REQUEST: {
-				xcb_resize_request_event_t const * resize =
-					(xcb_resize_request_event_t const *) event;
-				if (resize->width > 0 && resize->height > 0)
-					myy_display_initialised(resize->width, resize->height);
-				
-			}
-			break;
-			case XCB_BUTTON_PRESS: {
-				// Values definitions after a label borks the compiler
-				xcb_button_press_event_t *bp =
-					(xcb_button_press_event_t *) event;
-				unsigned int
-					x = bp->event_x,
-					y = bp->event_y,
-					button = bp->detail;
-				unsigned long click_time = bp->time;
-
-				if (is_moving.button == 0) {
-					is_moving.button = button;
-				  is_moving.start_x = x;
-					is_moving.start_y = y;
-				}
-				if (click_time - last_click > 250)
-					myy_click(x, y, button);
-				else myy_doubleclick(x, y, button);
-				last_click = click_time;
-			}
-			break;
-			case XCB_BUTTON_RELEASE: {
-				is_moving.button = 0;
-				break;
-			}
-			case XCB_MOTION_NOTIFY: {
-				xcb_motion_notify_event_t * motion =
-					(xcb_motion_notify_event_t *) event;
-				
-				if (is_moving.button == 0)
-					myy_hover(motion->event_x, motion->event_y);
-				else
-					myy_move(
-						motion->event_x, motion->event_y,
-						is_moving.start_x, is_moving.start_y
-					);
-			}
-			break;
-			case XCB_KEY_PRESS: {
-				// Keyboards values are shifted by 3 with X11, for
-				// 'historical' reasons.
-				xcb_key_press_event_t * kp =
-					(xcb_key_press_event_t *) event;
-				myy_key(kp->detail >> 3);
-			}
-			break;
-			case XCB_KEY_RELEASE: {
-				xcb_key_press_event_t * kp =
-					(xcb_key_press_event_t *) event;
-				myy_key_release(kp->detail >> 3);
-			}
-			break;
-			case XCB_DESTROY_NOTIFY:
-			case XCB_UNMAP_NOTIFY: {
-				LOG("Blargh ! Deading !\n");
-			}
-			break;
-    }
-    free(event);
-  }
-
-  return;
-}
 
 void Terminate
 (Display * display, Window window)

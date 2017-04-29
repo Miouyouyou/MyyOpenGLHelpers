@@ -1,15 +1,15 @@
 
 # Common Section
 set (MyyCommonHelpers
-     myy/helpers/opengl/loaders.c
-     myy/helpers/opengl/quads_structures.c
-     myy/helpers/fonts/packed_fonts_display.c
-     myy/helpers/fonts/packed_fonts_parser.c
-     myy/helpers/matrices.c
-     myy/helpers/strings.c)
+     myy/helpers/opengl/loaders.cpp
+     myy/helpers/opengl/quads_structures.cpp
+     myy/helpers/fonts/packed_fonts_display.cpp
+     myy/helpers/fonts/packed_fonts_parser.cpp
+     myy/helpers/matrices.cpp
+     myy/helpers/strings.cpp)
 set (MyyLinuxHelpers
-     myy/platforms/linux/common/helpers/file.c
-     myy/platforms/linux/common/helpers/browser.c)
+     myy/platforms/linux/common/helpers/file.cpp
+     myy/platforms/linux/common/helpers/browser.cpp)
 set (MyyPlatformsDir
      myy/platforms)
 set (MyyHelpersHeaders
@@ -38,7 +38,8 @@ if (MYY_X11 OR MYY_DRM)
 
 		set(MyyX11Sources
 		    myy/platforms/linux/X11/init_window.c
-		    myy/platforms/linux/X11/main.c)
+		    myy/platforms/linux/X11/parse_events.cpp
+		    myy/platforms/linux/X11/main.cpp)
 
 		add_executable(Program_X11
 		              ${MyyCommonHelpers}
@@ -106,9 +107,9 @@ if (MYY_ANDROID)
 	# message(STATUS "ANDROID ASSETS DIRECTORY : ${ANDROID_ASSETS_DIRECTORIES}")
 
 	set(MyyAndroidSources
-	    myy/platforms/android/android_dummy_main.c
-	    myy/platforms/android/android_native_app_glue.c
-	    myy/platforms/android/helpers/android_file.c)
+	    myy/platforms/android/android_dummy_main.cpp
+	    myy/platforms/android/android_native_app_glue.cpp
+	    myy/platforms/android/helpers/android_file.cpp)
 	find_library(android-lib-log     log)
 	find_library(android-lib-GLESv2  GLESv2)
 	find_library(android-lib-EGL     EGL)

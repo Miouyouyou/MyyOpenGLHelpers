@@ -33,7 +33,7 @@ struct myy_game_state {
 };
 
 struct myy_platform_handlers {
-	void (*stop)();
+	void (*stop)(void *);
 	void * stop_data;
 };
 

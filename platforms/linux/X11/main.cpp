@@ -28,13 +28,16 @@
 #include <string.h>
 #include "init_window.h"
 
-static void stop(unsigned int * running) {
+static void stop(void * data) {
+	unsigned int * running = (unsigned int *) data;
 	*running = 0;
 }
 
 int main() {
 
 	struct _escontext global_context;
+	global_context.xcb_state.last_click = 0;
+	global_context.xcb_state.is_moving.button = 0;
 	uint8_t context_created = CreateWindowWithEGLContext(
 		"Myy Window", 1280, 720, &global_context
 	);
@@ -52,7 +55,7 @@ int main() {
 	handlers->stop_data = &running;
 	
 	while(running) {
-		ParseEvents(global_context.connection);
+		ParseEvents(&global_context.xcb_state);
 		myy_draw();
 		myy_after_draw();
 		RefreshWindow(
