@@ -25,6 +25,11 @@
 #define MYY_INCLUDED 1
 
 #include <stdint.h>
+#include <myy/helpers/fonts/packed_fonts_display.h>
+
+struct myy_common_data {
+	struct glyph_infos * __restrict fonts_glyphs;
+};
 
 struct myy_game_state {
   unsigned int saved;

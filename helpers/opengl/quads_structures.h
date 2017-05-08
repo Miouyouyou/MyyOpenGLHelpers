@@ -14,6 +14,21 @@ enum quad_coords_order {
 struct generated_quads {
 	uint16_t count, size;
 };
+typedef struct generated_quads generated_quads_uS;
+static inline generated_quads_uS generated_quads_uS_struct
+(uint16_t count, uint16_t size)
+{
+	generated_quads_uS quads = { .count = count, .size  = size };
+	return quads;
+}
+
+static inline void generated_quads_uS_add
+(generated_quads_uS * __restrict const total,
+ generated_quads_uS const gen_quads)
+{
+	total->count += gen_quads.count;
+	total->size  += gen_quads.size;
+}
 
 struct point_2D { GLfloat x, y; } __PALIGN__;
 struct point_3D { GLfloat x, y, z; } __PALIGN__;

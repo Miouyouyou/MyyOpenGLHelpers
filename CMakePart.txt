@@ -1,11 +1,15 @@
 
 # Common Section
 set (MyyCommonHelpers
+     myy/helpers/opengl/buffers.c
      myy/helpers/opengl/loaders.c
      myy/helpers/opengl/quads_structures.c
      myy/helpers/fonts/packed_fonts_display.c
      myy/helpers/fonts/packed_fonts_parser.c
+     myy/helpers/arrays.c
+     myy/helpers/hitbox_action.c
      myy/helpers/matrices.c
+     myy/helpers/memory.c
      myy/helpers/strings.c)
 set (MyyLinuxHelpers
      myy/platforms/linux/common/helpers/file.c
@@ -19,9 +23,12 @@ set (MyyHelpersHeaders
      myy/helpers/opengl/quads_structures.h
      myy/helpers/fonts/packed_fonts_display.h
      myy/helpers/fonts/packed_fonts_parser.h
+     myy/helpers/arrays.h
      myy/helpers/file.h
+     myy/helpers/hitbox_action.h
      myy/helpers/log.h
      myy/helpers/matrices.h
+     myy/helpers/memory.h
      myy/helpers/strings.h
      myy/helpers/struct.h)
 
@@ -34,6 +41,14 @@ endif (MYY_DEBUG)
 if (MYY_X11 OR MYY_DRM)
 	file(COPY ${MyyFoldersToCopy} DESTINATION .)
 
+	set(CommonSources
+	    ${MyyCommonHelpers}
+	    ${MyyLinuxHelpers}
+	    ${MyyProjectSources})
+	set(CommonLibraries
+	    GLESv2
+	    EGL
+	    ${MyyProjectLibDeps})
 	if (MYY_X11)
 
 		set(MyyX11Sources
@@ -41,17 +56,26 @@ if (MYY_X11 OR MYY_DRM)
 		    myy/platforms/linux/X11/main.c)
 
 		add_executable(Program_X11
-		              ${MyyCommonHelpers}
-		              ${MyyLinuxHelpers}
-		              ${MyyX11Sources}
-		              ${MyyProjectSources})
+		              ${MyyMainHooks}
+		              ${CommonSources}
+		              ${MyyX11Sources})
 		target_link_libraries(Program_X11
-		                      GLESv2
-		                      EGL
+		                     ${CommonLibraries}
 		                      X11
 		                      xcb
 		                      xcb-xkb
-		                      ${MyyProjectLibDeps})
+		                     )
+		add_executable(Program_X11_Tests
+		              ${MyyTestsMainHooks}
+		              ${MyyTestsSources}
+		              ${CommonSources}
+		              ${MyyX11Sources})
+		target_link_libraries(Program_X11_Tests
+		                     ${CommonLibraries}
+		                      X11
+		                      xcb
+		                      xcb-xkb
+		                     )
 	endif (MYY_X11)
 
 	if (MYY_DRM)
@@ -64,17 +88,27 @@ if (MYY_X11 OR MYY_DRM)
 		    myy/platforms/linux/DRM/evdev.c)
 		include_directories(${DRM_INCLUDE_DIRS} ${GBM_INCLUDE_DIRS} ${EVDEV_INCLUDE_DIRS})
 		add_executable(Program_DRM
-		               ${MyyCommonHelpers}
-		               ${MyyLinuxHelpers}
+		               ${CommonSources}
 		               ${MyyDRMSources}
-		               ${MyyProjectSources})
+		              )
 		target_link_libraries(Program_DRM
-		                      GLESv2
-		                      EGL
+		                      ${CommonLibraries}
 		                      ${DRM_LIBRARIES}
 		                      ${GBM_LIBRARIES}
 		                      ${EVDEV_LIBRARIES}
-		                      ${MyyProjectLibDeps})
+		                     )
+		add_executable(Program_DRM_Tests
+		               ${MyyTestsMainHooks}
+		               ${MyyTestsSources}
+		               ${CommonSources}
+		               ${MyyDRMSources}
+		              )
+		target_link_libraries(Program_DRM_Tests
+		                      ${CommonLibraries}
+		                      ${DRM_LIBRARIES}
+		                      ${GBM_LIBRARIES}
+		                      ${EVDEV_LIBRARIES}
+		                     )
 	endif (MYY_DRM)
 endif (MYY_X11 OR MYY_DRM)
 

@@ -358,13 +358,13 @@ void ParseEvents
 				// 'historical' reasons.
 				xcb_key_press_event_t * kp =
 					(xcb_key_press_event_t *) event;
-				myy_key(kp->detail >> 3);
+				myy_key(kp->detail - 8);
 			}
 			break;
 			case XCB_KEY_RELEASE: {
 				xcb_key_press_event_t * kp =
 					(xcb_key_press_event_t *) event;
-				myy_key_release(kp->detail >> 3);
+				myy_key_release(kp->detail - 8);
 			}
 			break;
 			case XCB_DESTROY_NOTIFY:
