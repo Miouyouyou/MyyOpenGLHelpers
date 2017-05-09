@@ -26,9 +26,11 @@
 
 #include <stdint.h>
 #include <myy/helpers/fonts/packed_fonts_display.h>
+#include <myy/helpers/hitbox_action.h>
 
 struct myy_common_data {
 	struct glyph_infos * __restrict fonts_glyphs;
+	hitboxes_S_t * hitboxes;
 };
 
 struct myy_game_state {

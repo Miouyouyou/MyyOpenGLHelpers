@@ -67,5 +67,14 @@ uint8_t hitboxes_S_add_copy
 (hitboxes_S_t * __restrict const hitboxes,
  hitbox_action_S_t * model);
 
+uint8_t hitboxes_S_add_box_action
+(hitboxes_S_t * __restrict const hitboxes,
+ box_coords_S_t * __restrict coords,
+ uint8_t (* action)(position_S rel, position_S abs));
+
+uint8_t hitboxes_S_delete_box_action
+(hitboxes_S_t * __restrict const hitboxes,
+ box_coords_S_t * __restrict coords,
+ uint8_t (* action)(position_S rel, position_S abs));
 
 #endif
