@@ -4,16 +4,12 @@
 
 #include <string.h> // memcmp
 
-/*
- * void hitboxes_action_react_on_click_at
-(hitboxes_S_t const * __restrict const hitboxes,
- position_S const clicked_pos_rel_to_screen)
- */
-void hitboxes_action_react_on_click_at
+uint8_t hitboxes_action_react_on_click_at
 (hitboxes_S_t const * __restrict const hitboxes,
  position_S const clicked_pos_rel_to_screen)
 {
 	uint_fast16_t n_hitboxes = hitboxes->count;
+	uint8_t click_handled = 0;
 	for (uint_fast16_t i = 0; i < n_hitboxes; i++)
 	{
 		struct hitbox_action_S current_hitbox = hitboxes->data[i];
@@ -30,16 +26,17 @@ void hitboxes_action_react_on_click_at
 			
 			position_S clicked_pos_rel_to_box =
 				position_S_relative_to_window_coords(
-					box_top_left, clicked_pos_rel_to_screen
+					clicked_pos_rel_to_screen, box_top_left
 				);
 			
-			uint_fast8_t click_handled = current_hitbox.action(
+			click_handled = current_hitbox.action(
+				current_hitbox.action_data,
 				clicked_pos_rel_to_box, clicked_pos_rel_to_screen
 			);
 			if (click_handled) break;
 		}
 	}
-	
+	return click_handled;
 }
 
 hitboxes_S_t hitboxes_struct
@@ -65,7 +62,7 @@ void hitboxes_S_init
 inline static hitbox_action_S_t hitbox_action_S_struct
 (int16_t const left, int16_t const right,
  int16_t const top, int16_t const bottom,
- uint8_t (* action)(position_S rel, position_S abs))
+ uint8_t (* action)(HITBOX_ACTION_SIG))
 {
 	hitbox_action_S_t hitbox = {
 		.coords = {
@@ -80,7 +77,8 @@ uint8_t hitboxes_S_add
 (hitboxes_S_t * __restrict const hitboxes,
  int16_t const left, int16_t const right,
  int16_t const top,  int16_t const bottom,
- uint8_t (* action)(position_S rel, position_S abs))
+ uint8_t (* action)(HITBOX_ACTION_SIG),
+ void * action_data)
 {
 	uint8_t enough_space = dyn_array_generic_ensure_space_for_more_u16(
 		(DynArray_u16_t * __restrict) hitboxes, 1, sizeof(DynArray_u16_t)
@@ -90,6 +88,7 @@ uint8_t hitboxes_S_add
 		hitbox_action_S_t hitbox = hitbox_action_S_struct(
 			left, right, top, bottom, action
 		);
+		hitbox.action_data = action_data;
 
 		hitboxes->data[hitboxes->count] = hitbox;
 		hitboxes->count += 1;
@@ -100,18 +99,19 @@ uint8_t hitboxes_S_add
 uint8_t hitboxes_S_add_box_action
 (hitboxes_S_t * __restrict const hitboxes,
  box_coords_S_t * __restrict const box,
- uint8_t (* action)(position_S rel, position_S abs))
+ uint8_t (* action)(HITBOX_ACTION_SIG),
+ void * action_data)
 {
 	return hitboxes_S_add(
 		hitboxes, box->left, box->right, box->top, box->bottom,
-		action
+		action, action_data
 	);
 }
 
 uint8_t hitboxes_S_delete_box_action
 (hitboxes_S_t * __restrict const hitboxes,
  box_coords_S_t * __restrict const box,
- uint8_t (* action)(position_S rel, position_S))
+ uint8_t (* action)(HITBOX_ACTION_SIG))
 {
 	return hitboxes_S_delete(
 		hitboxes, box->left, box->right, box->top, box->bottom,
@@ -138,7 +138,7 @@ uint8_t hitboxes_S_delete
 (hitboxes_S_t * __restrict const hitboxes,
  int16_t const left, int16_t const right,
  int16_t const top,  int16_t const bottom,
- uint8_t (* action)(position_S rel, position_S abs))
+ uint8_t (* action)(HITBOX_ACTION_SIG))
 {
 	hitbox_action_S_t hitbox = hitbox_action_S_struct(
 		left, right, top, bottom, action
@@ -166,4 +166,12 @@ uint8_t hitboxes_S_delete
 	return h < n_hitboxes;
 }
 
+void hitboxes_S_reset
+(hitboxes_S_t * __restrict const hitboxes)
+{
+	clean_memory_space(
+		hitboxes->data, hitboxes->max * sizeof(hitbox_action_S_t)
+	);
+	hitboxes->count = 0;
+}
 
