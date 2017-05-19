@@ -2,6 +2,7 @@
 #define MYY_SRC_HELPERS_OPENGL_QUADS_STRUCTURES 1
 
 #include <myy/current/opengl.h>
+#include <myy/helpers/hitbox_action.h>
 #include <myy/helpers/struct.h>
 #include <stdint.h>
 
@@ -29,6 +30,9 @@ static inline void generated_quads_uS_add
 	total->count += gen_quads.count;
 	total->size  += gen_quads.size;
 }
+
+struct myy_rgba { uint8_t r, g, b, a; } __PALIGN__;
+typedef struct myy_rgba rgba_t;
 
 struct point_2D { GLfloat x, y; } __PALIGN__;
 struct point_3D { GLfloat x, y, z; } __PALIGN__;
@@ -157,6 +161,21 @@ union SuB_two_triangles_colored_quad_2D_representations {
 	struct SuB_colored_point_2D points[6];
 } __PALIGN__;
 
+struct SuB_colored_point_3D { GLshort x, y, z; GLubyte r, g, b, a; }
+__PALIGN__;
+struct SuB_colored_triangle_3D {
+	struct SuB_colored_point_3D a, b, c;
+} __PALIGN__;
+struct SuB_two_triangles_colored_quad_3D {
+	struct SuB_colored_triangle_3D first, second;
+} __PALIGN__;
+
+union SuB_two_triangles_colored_quad_3D_representations {
+	struct SuB_two_triangles_colored_quad_3D quad;
+	struct SuB_colored_triangle_3D triangles[2];
+	struct SuB_colored_point_3D points[6];
+} __PALIGN__;
+
 struct US_textured_point_3D { GLshort x, y, z; GLushort s, t; } __PALIGN__;
 struct US_textured_triangle_3D { struct US_textured_point_3D a, b, c; } __PALIGN__;
 struct US_two_triangles_textured_quad_3D { struct US_textured_triangle_3D first, second; } __PALIGN__;
@@ -171,7 +190,7 @@ struct SuSuB_textured_colored_point_3D {
 	GLshort x, y, z;
 	GLushort s, t;
 	GLubyte r, g, b, a;
-};
+} __PALIGN__;
 
 struct SuSuB_textured_colored_triangle_3D { 
 	struct SuSuB_textured_colored_point_3D a, b, c;
@@ -192,6 +211,8 @@ typedef union US_two_triangles_textured_quad_3D_representations
 US_two_tris_quad_3D;
 typedef union SuB_two_triangles_colored_quad_2D_representations
 SuB_2t_colored_quad;
+typedef union SuB_two_triangles_colored_quad_3D_representations
+SuB_2t_colored_quad_3D;
 typedef union SuSuB_2t_textured_colored_quad_3D_representations
 SuSuB_2t_colored_quad_3D;
 
@@ -210,13 +231,36 @@ void US_two_tris_quad_3D_draw_pixelscoords
  unsigned int const n_quads);
 
 void SuB_2t_colored_quad_store
-(int32_t const left, int32_t const top,
- int32_t const right, int32_t const bottom,
+(int_least16_t const left, int_least16_t const top,
+ int_least16_t const right, int_least16_t const bottom,
  SuB_2t_colored_quad * __restrict const quad,
- uint8_t const r, uint8_t const g, uint8_t const b,
- uint8_t const a);
+ uint_least8_t const r, uint_least8_t const g, uint_least8_t const b,
+ uint_least8_t const a);
 
 void SuB_2t_colored_quad_draw_pixel_coords
+(GLuint const buffer_id,
+ GLuint const xy_attribute, GLuint const rgba_attribute,
+ GLuint const offset,
+ unsigned int const n_quads);
+
+void SuB_2t_colored_quad_store_box
+(box_coords_S_t box,
+ uint8_t const r, uint8_t const g,
+ uint8_t const b, uint8_t const a,
+ SuB_2t_colored_quad * __restrict const quad);
+
+void SuB_2t_colored_quad_store_box_3D
+(box_coords_S_t box,
+ uint8_t const r, uint8_t const g,
+ uint8_t const b, uint8_t const a,
+ uint16_t layer,
+ SuB_2t_colored_quad_3D * __restrict const quad);
+
+void SuB_2t_colored_quad_store_box_rgba_3D
+(box_coords_S_t const box, rgba_t const color, uint16_t const layer,
+ SuB_2t_colored_quad_3D * __restrict const quad);
+
+void SuB_2t_colored_quad_3D_draw_pixel_coords
 (GLuint const buffer_id,
  GLuint const xy_attribute, GLuint const rgba_attribute,
  GLuint const offset,

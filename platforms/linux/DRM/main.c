@@ -36,7 +36,7 @@
 #include <xf86drmMode.h>
 #include <gbm.h>
 
-#include <myy.h>
+#include <myy/myy.h>
 #include <myy/helpers/log.h>
 #include <myy/current/opengl.h>
 

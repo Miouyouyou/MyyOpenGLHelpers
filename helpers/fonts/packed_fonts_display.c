@@ -101,25 +101,24 @@ void myy_glyph_to_twotris_quad_window_coords
 (struct glyph_infos const * __restrict const glyph_infos,
  uint32_t const codepoint,
  US_two_tris_quad_3D * __restrict const quad,
- struct text_offset * __restrict const offset) {
+ position_S * __restrict const offset) {
 
 	struct myy_packed_fonts_codepoints const * __restrict const codepoints =
 	  glyph_infos->codepoints_addr;
 
 	unsigned int codepoint_index =
 	  find_codepoint_in(codepoints, codepoint);
-	int16_t x_offset_px = offset->x_offset;
-	int16_t y_offset_px = offset->y_offset;
+	position_S text_pos = *offset;
 	if (codepoint_index) {
 		struct myy_packed_fonts_glyphdata const * __restrict const glyphdata =
 		  glyph_infos->glyphdata_addr+codepoint_index;
 		
-		int16_t baseline_px = 16+y_offset_px; // px
-		int16_t glyph_x_offset_px = glyphdata->offset_x_px + x_offset_px;
+		int16_t baseline_px = 16+text_pos.y; // px
+		int16_t glyph_x_offset_px = glyphdata->offset_x_px + text_pos.x;
 		int16_t glyph_y_offset_px = baseline_px - glyphdata->offset_y_px;
 		int16_t right_px = glyphdata->width_px  + glyph_x_offset_px;
 		int16_t up_px    = glyph_y_offset_px - glyphdata->height_px;
-		int16_t advance_x = x_offset_px + glyphdata->advance_x_px;
+		int16_t advance_x = text_pos.x + glyphdata->advance_x_px;
 
 		uint16_t const
 		  left  = glyph_x_offset_px,
@@ -137,11 +136,10 @@ void myy_glyph_to_twotris_quad_window_coords
 			tex_left, tex_right, tex_up, tex_down
 		);
 		
-		x_offset_px = advance_x;
+		text_pos.x = advance_x;
 	}
 	
-	offset->x_offset = x_offset_px;
-	offset->y_offset = y_offset_px;
+	*offset = text_pos;
 	
 	return;
 }
@@ -209,10 +207,7 @@ void myy_codepoints_to_glyph_twotris_quads_window_coords
  unsigned int const n_characters,
  US_two_tris_quad_3D * __restrict const quads) {
 
-	struct text_offset offsets = {
-		.x_offset = 0,
-		.y_offset = 0
-	};
+	position_S offsets = position_S_struct(0,0);
 	for (unsigned int i = 0; i < n_characters; i++)
 		myy_glyph_to_twotris_quad_window_coords(
 		  glyph_infos, string[i], quads+i, &offsets
@@ -223,8 +218,8 @@ void myy_codepoints_to_glyph_twotris_quads_window_coords
 struct generated_quads myy_single_string_to_quads
 (struct glyph_infos const * __restrict const glyph_infos,
  uint8_t const * __restrict string,
- uint8_t const * __restrict const quads_buffer_address,
- struct text_offset * __restrict const text_offset) 
+ buffer_t quads_buffer_address,
+ position_S * __restrict const text_offset) 
 {
 	US_two_tris_quad_3D * __restrict const quads_buffer =
 		(US_two_tris_quad_3D *) quads_buffer_address;
@@ -252,21 +247,16 @@ struct generated_quads myy_strings_to_quads_va
 (struct glyph_infos const * __restrict const glyph_infos,
  unsigned int const n_strings,
  uint8_t const * const * __restrict const strings,
- uint8_t * __restrict const buffer,
- int16_t const vertical_offset_px,
- struct text_offset * __restrict const text_position_px)
+ buffer_t buffer, int16_t const vertical_offset_px,
+ position_S * __restrict const text_position_px)
 {
 	US_two_tris_quad_3D * __restrict const quads_buffer =
 		(US_two_tris_quad_3D *) buffer;
 
 	uint16_t stored_quads = 0;
-	struct text_offset offset = {
-		.x_offset = text_position_px->x_offset,
-		.y_offset = text_position_px->y_offset
-	};
-
+	position_S offset = *text_position_px;
 	for (unsigned int s = 0; s < n_strings; s++) {
-		offset.x_offset = text_position_px->x_offset; // line start
+		offset.x = text_position_px->x; // line start
 		uint8_t const * string = strings[s];
 
 		/* Generate the quads representing the current string characters */
@@ -287,7 +277,7 @@ struct generated_quads myy_strings_to_quads_va
 		}
 		
 		// Offset the next line
-		offset.y_offset += vertical_offset_px; // next line
+		offset.y += vertical_offset_px; // next line
 	}
 	
 	struct generated_quads generated_quads = {

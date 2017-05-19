@@ -31,7 +31,7 @@
 
 #include <xcb/xcb.h>
 
-#include <myy.h>
+#include <myy/myy.h>
 
 /* eglplatform.h implicitly include X11 libraries */
 static Atom destroy;

@@ -61,27 +61,27 @@ int glhLoadShader
 
 	LOG("Shader : %s - Type : %d\n",
 	    pathname, shaderType);
-  GLuint shader = glCreateShader(shaderType);
+	GLuint shader = glCreateShader(shaderType);
 	LOG("Loading shader : %s - glCreateShader : %d\n",
 	    pathname, shader);
-  GLuint ok = 0;
+	GLuint ok = 0;
 
   if (shader) {
 		LOG("Shader %s seems ok...\n", pathname);
-    struct myy_fh_map_handle mapped_file_infos =
-		  fh_MapFileToMemory(pathname);
-    if (mapped_file_infos.ok) {
+		struct myy_fh_map_handle mapped_file_infos =
+			fh_MapFileToMemory(pathname);
+		if (mapped_file_infos.ok) {
 			GLchar const * const * __restrict const shader_code =
-			  (GLchar const * const *) &mapped_file_infos.address;
+				(GLchar const * const *) &mapped_file_infos.address;
 
 			glShaderSource(shader, 1, shader_code, &mapped_file_infos.length);
-      glCompileShader(shader);
-      ok = check_if_ok(shader, GL_SHADER_PROBLEMS);
-      if (ok) glAttachShader(program, shader);
-      glDeleteShader(shader);
-      fh_UnmapFileFromMemory(mapped_file_infos);
-    }
-  }
+			glCompileShader(shader);
+			ok = check_if_ok(shader, GL_SHADER_PROBLEMS);
+			if (ok) glAttachShader(program, shader);
+			glDeleteShader(shader);
+			fh_UnmapFileFromMemory(mapped_file_infos);
+		}
+	}
 	LOG("Shader %s -> Status : %d\n", pathname, program);
   return ok;
 }

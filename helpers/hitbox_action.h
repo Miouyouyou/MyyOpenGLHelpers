@@ -2,13 +2,14 @@
 #define MYY_HELPERS_HITBOX_ACTION_H 1
 
 #include <stdint.h>
-#include <myy/helpers/position.h>
 
-struct box_coords_S {
-	int16_t left, right, top, bottom;
-};
+struct box_coords_S { int16_t left, right, top, bottom; };
 
 typedef struct box_coords_S box_coords_S_t;
+
+#include <myy/helpers/position.h>
+
+
 
 inline static uint8_t box_coords_S_pos_S_inside_window_coords
 (box_coords_S_t const box_coords, position_S position)

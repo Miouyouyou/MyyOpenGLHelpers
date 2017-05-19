@@ -27,8 +27,6 @@
 #include <android/log.h>
 #include "android_native_app_glue.h"
 
-#include <EGL/egl.h>
-
 #include <sys/syscall.h>
 #include <sys/types.h>
 #include <unistd.h> /* chdir */
@@ -39,7 +37,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 
-#include <myy.h>
+#include <myy/myy.h>
 #include <myy/current/opengl.h>
 
 #ifdef DEBUG
@@ -86,7 +84,7 @@ static int add_egl_context_to
 		EGL_NONE, EGL_NONE
 	};
 	EGLint contextAttribs[] =
-		{ MYY_CURRENT_GL_CONTEXT, EGL_NONE, EGL_NONE };
+		{ MYY_CURRENT_GL_CONTEXT, EGL_NONE };
 
   EGLDisplay display = eglGetDisplay(EGL_DEFAULT_DISPLAY);
 
@@ -216,25 +214,26 @@ static void engine_handle_cmd
   switch (cmd) {
   case APP_CMD_INIT_WINDOW:
     LOGW("======================================");
-    LOGW("Initialising window");
+    LOGW("========= Initialising window");
+    myy_init_drawing();
     if (app->window != NULL)
       add_egl_context_to(app->window, e, &current_android_window);
-    myy_init_drawing();
+    
     break;
   case APP_CMD_WINDOW_RESIZED:
-    LOGW("Resizing !");
+    LOGW("========= Resizing !");
     animating = 0;
     egl_stop(e);
     add_egl_context_to(app->window, e, &current_android_window);
     animating = 1;
   case APP_CMD_RESUME:
-    LOGW("Resuming !");
+    LOGW("========= Resuming !");
     myy_android_activity = app->activity;
     myy_resume_state(state);
     animating = 1;
     break;
   case APP_CMD_PAUSE:
-    LOGW("Pause !");
+    LOGW("========= Pause !");
     animating = 0;
     myy_save_state(state);
     break;
@@ -242,10 +241,10 @@ static void engine_handle_cmd
     myy_stop();
     break;
   case APP_CMD_SAVE_STATE:
-    LOGW("State saved !");
+    LOGW("========= State saved !");
     break;
   case APP_CMD_TERM_WINDOW:
-    LOGW("Terminated !");
+    LOGW("========= Terminated !");
     myy_cleanup_drawing();
     egl_stop(e);
     break;

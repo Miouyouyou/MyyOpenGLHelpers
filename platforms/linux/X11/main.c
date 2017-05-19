@@ -21,7 +21,7 @@
   SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-#include <myy.h>
+#include <myy/myy.h>
 #include <myy/helpers/log.h>
 #include <myy/helpers/strings.h>
 #include <stdlib.h>

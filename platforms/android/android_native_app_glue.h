@@ -140,7 +140,7 @@ struct android_app {
 
     // Current content rectangle of the window; this is the area where the
     // window's content should be placed to be seen by the user.
-    ARect contentRect;
+    ARect contentRect; // 16 bytes
 
     // Current state of the app's activity.  May be either APP_CMD_START,
     // APP_CMD_RESUME, APP_CMD_PAUSE, or APP_CMD_STOP; see below.

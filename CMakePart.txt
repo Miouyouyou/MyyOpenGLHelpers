@@ -149,6 +149,7 @@ if (MYY_ANDROID)
 	find_library(android-lib-android android)
 	add_library(main
 	            SHARED
+	            ${MyyMainHooks}
 	            ${MyyCommonHelpers}
 	            ${MyyAndroidSources}
 	            ${MyyProjectSources})

@@ -7,7 +7,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 
-#include <myy.h>
+#include <myy/myy.h>
 #include <myy/helpers/log.h>
 
 #include <ftw.h>
