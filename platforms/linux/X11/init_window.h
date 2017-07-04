@@ -56,18 +56,23 @@ xcb_window_t CreateNativeWindow
 (char const * __restrict const title,
  int const width, int const height,
  struct _escontext * __restrict const global_data);
+
 EGLBoolean CreateEGLContext
 (char const * __restrict const title,
  int const width, int const height,
  struct _escontext * __restrict const global_data);
+
 EGLBoolean CreateWindowWithEGLContext
 (const char * __restrict const title,
  const int width, const int height,
  struct _escontext * __restrict const global_data);
+
 void ParseEvents
 (xcb_connection_t * const connection);
+
 void RefreshWindow
 (EGLDisplay const display, EGLSurface const surface);
+
 void Terminate
 (Display * display, Window window);
 

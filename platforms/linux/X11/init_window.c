@@ -23,6 +23,8 @@
 #include "init_window.h"
 
 #include <string.h>
+#include <stdlib.h>
+
 #include <myy/current/opengl.h>
 #include <myy/helpers/strings.h>
 #include <myy/helpers/log.h>
@@ -162,10 +164,10 @@ xcb_window_t CreateNativeWindow
 		0,0,0
 	);
 
-  global_data->native_display = display;
-  global_data->window_width   = width;
-  global_data->window_height  = height;
-  global_data->native_window  = window;
+	global_data->native_display = display;
+	global_data->window_width   = width;
+	global_data->window_height  = height;
+	global_data->native_window  = window;
 	global_data->connection     = connection;
 	
 	return window;
@@ -280,7 +282,7 @@ EGLBoolean CreateWindowWithEGLContext
  const int width, const int height,
  struct _escontext * __restrict const global_data)
 {
-  return CreateEGLContext(title, width, height, global_data);
+	return CreateEGLContext(title, width, height, global_data);
 }
 
 
@@ -291,7 +293,7 @@ struct is_moving {
 	uint16_t start_x, start_y;
 } is_moving = {0};
 
-#include <stdlib.h>
+
 void ParseEvents
 (xcb_connection_t * const connection)
 {
@@ -300,10 +302,10 @@ void ParseEvents
 
 	while ((event = xcb_poll_for_event(connection))) {
 		unsigned int response = (event->response_type & ~0x80);
-			switch(response) {
+		switch(response) {
 			case XCB_CLIENT_MESSAGE: {
-				// Terrible hack. We should check the message content.
-				// That said, we only listen for close events so...
+					// Terrible hack. We should check the message content.
+					// That said, we only listen for close events so...
 				myy_user_quit();
 			}
 			break;
@@ -312,7 +314,7 @@ void ParseEvents
 					(xcb_resize_request_event_t const *) event;
 				if (resize->width > 0 && resize->height > 0)
 					myy_display_initialised(resize->width, resize->height);
-				
+					
 			}
 			break;
 			case XCB_BUTTON_PRESS: {
@@ -327,23 +329,23 @@ void ParseEvents
 
 				if (is_moving.button == 0) {
 					is_moving.button = button;
-				  is_moving.start_x = x;
+					is_moving.start_x = x;
 					is_moving.start_y = y;
 				}
 				if (click_time - last_click > 250)
 					myy_click(x, y, button);
 				else myy_doubleclick(x, y, button);
-				last_click = click_time;
+					last_click = click_time;
 			}
 			break;
 			case XCB_BUTTON_RELEASE: {
 				is_moving.button = 0;
-				break;
 			}
+			break;
 			case XCB_MOTION_NOTIFY: {
 				xcb_motion_notify_event_t * motion =
 					(xcb_motion_notify_event_t *) event;
-				
+
 				if (is_moving.button == 0)
 					myy_hover(motion->event_x, motion->event_y);
 				else
@@ -372,17 +374,17 @@ void ParseEvents
 				LOG("Blargh ! Deading !\n");
 			}
 			break;
-    }
-    free(event);
-  }
+		}
+		free(event);
+	}
 
-  return;
+	return;
 }
 
 void Terminate
 (Display * display, Window window)
 {
-  if (window) XDestroyWindow( display, window );
-  XCloseDisplay( display );
+	if (window) XDestroyWindow( display, window );
+	XCloseDisplay( display );
 }
 
