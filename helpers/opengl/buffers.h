@@ -17,26 +17,31 @@ inline static void gpu_buffer_set
 {
 	buffer->id = id; buffer->offset = offset;
 }
+
 inline static void gpu_buffer_bind
 (gpu_buffer const buffer)
 {
 	glBindBuffer(GL_ARRAY_BUFFER, buffer.id);
 }
+
 inline static gpu_buffer_size gpu_buffer_size_remaining
 (gpu_buffer const buffer)
 {
 	return buffer.size.max - buffer.size.used;
 }
+
 inline static uint8_t gpu_buffer_enough_space_for_abs
 (gpu_buffer const buffer, GLsizei amount, GLuint abs_offset)
 {
 	return buffer.size.max > ((abs_offset - buffer.offset) + amount);
 }
+
 inline static uint8_t gpu_buffer_enough_space_for_rel
 (gpu_buffer const buffer, GLsizei amount, GLuint rel_offset)
 {
 	return buffer.size.max > (rel_offset + amount);
 }
+
 inline static void gpu_buffer_store
 (gpu_buffer * __restrict const buffer, GLsizei size,
  void * __restrict const data)
@@ -48,12 +53,14 @@ inline static void gpu_buffer_store
 		buffer->size.max = size;
 	}*/
 }
+
 inline static void gpu_buffer_store_after
 (gpu_buffer const buffer, GLsizei size, GLint offset, void * data)
 {
 	
 	glBufferSubData(GL_ARRAY_BUFFER, buffer.offset + offset, size, data);
 }
+
 inline static void gpu_buffer_store_at
 (GLsizei size, GLint offset, void * data)
 {
@@ -89,7 +96,7 @@ typedef struct gpu_triple_buffers_dumb gpu_dumb_3buffs_t;
  * Get the currently bound OpenGL buffer ID
  */
 inline static GLuint gpu_dumb_3buffs_current_buffer_id
-(gpu_dumb_3buffs_t * __restrict const buffer)
+(gpu_dumb_3buffs_t const * __restrict const buffer)
 {
 	return buffer->id[buffer->current_index];
 }
