@@ -217,4 +217,21 @@ void glhUploadMyyRawTextures
 void glhActiveTextures
 (GLuint const * const texids, int const n_textures);
 
+/**
+ * Prepare a glsl_programs_shared_data structure using the provided
+ * shaders.pack file.
+ * 
+ * The structure can then be used with others functions like 
+ * glhBuildAndSaveProgram.
+ * 
+ * parameters :
+ *   @param data The structure to fill in.
+ * 
+ */
+void glhShadersPackLoader
+(struct glsl_programs_shared_data * __restrict const data)
+{
+	fh_WholeFileToBuffer("data/shaders.pack", data);
+}
+
 #endif
