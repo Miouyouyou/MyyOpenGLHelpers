@@ -1,6 +1,7 @@
 #ifndef MYY_SRC_HELPERS_OPENGL_LOADERS
 #define MYY_SRC_HELPERS_OPENGL_LOADERS 1
 
+#include <myy/helpers/file.h>
 #include <myy/current/opengl.h>
 #include <src/generated/opengl/data_config.h>
 #include <stdint.h>
@@ -229,9 +230,6 @@ void glhActiveTextures
  * 
  */
 void glhShadersPackLoader
-(struct glsl_programs_shared_data * __restrict const data)
-{
-	fh_WholeFileToBuffer("data/shaders.pack", data);
-}
+(struct glsl_programs_shared_data * __restrict const data);
 
 #endif
