@@ -42,6 +42,7 @@ if (MYY_X11 OR MYY_DRM)
 	file(COPY ${MyyFoldersToCopy} DESTINATION .)
 
 	set(CommonSources
+	    myy/myy_stubs.c
 	    ${MyyCommonHelpers}
 	    ${MyyLinuxHelpers}
 	    ${MyyProjectSources})
