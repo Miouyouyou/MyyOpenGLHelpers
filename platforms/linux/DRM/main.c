@@ -504,13 +504,13 @@ int main(int argc, char *argv[])
 
 	int running = 1;
 	/* Initialise our 'engine' */
-	
+
 	// Platform handlers
 	struct myy_platform_handlers * __restrict const platform_handlers =
 		myy_get_platform_handlers();
 	platform_handlers->stop = stop;
 	platform_handlers->stop_data = &running;
-	
+
 	// State and draw
 	myy_generate_new_state();
 	myy_init_drawing();

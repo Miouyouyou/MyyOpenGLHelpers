@@ -2,6 +2,21 @@
 #include <myy/current/opengl.h>
 #include <myy/helpers/macros.h>
 
+static struct myy_platform_handlers platform = {
+	.stop = NULL,
+	.stop_data = NULL
+};
+
+struct myy_platform_handlers *
+weak_function myy_get_platform_handlers()
+{
+	return &platform;
+}
+
+void weak_function myy_user_quit() {
+	platform.stop(platform.stop_data);
+}
+
 void weak_function myy_init() {};
 
 void weak_function myy_display_initialised(

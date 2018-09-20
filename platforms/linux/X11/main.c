@@ -47,10 +47,10 @@ int main() {
 
 	struct myy_platform_handlers * handlers =
 		myy_get_platform_handlers();
-	
+
 	handlers->stop = stop;
 	handlers->stop_data = &running;
-	
+
 	while(running) {
 		ParseEvents(global_context.connection);
 		myy_draw();

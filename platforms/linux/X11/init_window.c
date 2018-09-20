@@ -78,9 +78,9 @@ xcb_window_t CreateNativeWindow
 	xcb_connection_t * const connection = xcb_connect(NULL, NULL);
 	xcb_screen_t * const screen =
 		xcb_setup_roots_iterator(xcb_get_setup(connection)).data;
-	
+
 	xcb_window_t window = xcb_generate_id(connection);
-	
+
 	uint32_t mask = XCB_CW_BACK_PIXEL | XCB_CW_EVENT_MASK;
 	uint32_t values[2] = {
 		screen->white_pixel,
@@ -95,7 +95,7 @@ xcb_window_t CreateNativeWindow
 		XCB_EVENT_MASK_RESIZE_REDIRECT  |
 		XCB_EVENT_MASK_STRUCTURE_NOTIFY
 	};
-	
+
 	xcb_void_cookie_t create_cookie = xcb_create_window_checked(
 		connection,
 		XCB_COPY_FROM_PARENT,
@@ -120,7 +120,7 @@ xcb_window_t CreateNativeWindow
 	);
 	xcb_void_cookie_t map_cookie = 
 		xcb_map_window_checked(connection, window);
-	
+
 	xcb_generic_error_t * error =
 		xcb_request_check(connection, create_cookie);
 	if (error) LOG("Could not create a window !?\n");
@@ -145,7 +145,7 @@ xcb_window_t CreateNativeWindow
 		connection, XCB_PROP_MODE_REPLACE, window,
 		wmProtocolsReply->atom, 4, 32, 1, &wmDeleteReply->atom
 	);
-	
+
 	/* Predictable autorepeat is essential for correct input management
 	 * When a key is hold down :
 	 * - Without predictable autorepeat, the application will receive :

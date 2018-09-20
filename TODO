@@ -1,0 +1,5 @@
+Windowing
+---------
+[ ] Provide a way to setup the window properties__
+  (Name, Resolution, ...)
+[ ] Provide a way to get the current window properties
