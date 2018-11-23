@@ -1,9 +1,9 @@
 #ifndef MYY_SRC_HELPERS_OPENGL_LOADERS
 #define MYY_SRC_HELPERS_OPENGL_LOADERS 1
 
+#include <src/generated/opengl/shaders_infos.h>
 #include <myy/helpers/file.h>
 #include <myy/current/opengl.h>
-#include <src/generated/opengl/data_config.h>
 #include <stdint.h>
 
 int glhLoadShader
@@ -28,7 +28,7 @@ int glhLoadShader
  *          compilation
  * 
  * @example
- * enum glsl_shader_name {
+ * enum glsl_file {
  * 	text_vsh,
  * 	text_fsh,
  * 	glsl_shaders_count
@@ -63,7 +63,7 @@ int glhLoadShader
 unsigned int glhCompileProgram
 (struct glsl_programs_shared_data const * __restrict const metadata,
  unsigned int const n_shaders,
- enum glsl_shader_name const * __restrict const shaders);
+ enum glsl_file const * __restrict const shaders);
 
 /**
  * Link and Save a precompiled program.
@@ -106,7 +106,7 @@ unsigned int glhLinkAndSaveProgram
 unsigned int glhBuildAndSaveProgram
 (struct glsl_programs_shared_data * __restrict const metadata,
  unsigned int const n_shaders,
- enum glsl_shader_name const * __restrict const shaders,
+ enum glsl_file const * __restrict const shaders,
  enum glsl_program_name const program_index);
 
 /**
@@ -133,8 +133,8 @@ unsigned int glhBuildAndSaveProgram
  */
 unsigned int glhBuildAndSaveSimpleProgram
 (struct glsl_programs_shared_data * __restrict const metadata,
- enum glsl_shader_name vertex_shader,
- enum glsl_shader_name fragment_shader,
+ enum glsl_file vertex_shader,
+ enum glsl_file fragment_shader,
  enum glsl_program_name const program_index);
 
 GLuint glhSetupProgram

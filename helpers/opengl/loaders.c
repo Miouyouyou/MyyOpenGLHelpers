@@ -89,12 +89,12 @@ int glhLoadShader
 unsigned int glhCompileProgram
 (struct glsl_programs_shared_data const * __restrict const metadata,
  unsigned int const n_shaders,
- enum glsl_shader_name const * __restrict const shaders)
+ enum glsl_file const * __restrict const shaders)
 {
 	GLuint p = glCreateProgram();
 	GLuint ok = 1;
 	for (unsigned int s = 0; s < n_shaders; s++) {
-		enum glsl_shader_name shader_index = shaders[s];
+		enum glsl_file shader_index = shaders[s];
 		struct glsl_shader const shader = metadata->shaders[shader_index];
 
 		GLchar const * const shader_filepath =
@@ -132,7 +132,7 @@ unsigned int glhLinkAndSaveProgram
 unsigned int glhBuildAndSaveProgram
 (struct glsl_programs_shared_data * __restrict const metadata,
  unsigned int const n_shaders,
- enum glsl_shader_name const * __restrict const shaders,
+ enum glsl_file const * __restrict const shaders,
  enum glsl_program_name const program_index)
 {
 	GLuint program = glhCompileProgram(metadata, n_shaders, shaders);
@@ -142,11 +142,11 @@ unsigned int glhBuildAndSaveProgram
 
 unsigned int glhBuildAndSaveSimpleProgram
 (struct glsl_programs_shared_data * __restrict const metadata,
- enum glsl_shader_name vertex_shader,
- enum glsl_shader_name fragment_shader,
+ enum glsl_file vertex_shader,
+ enum glsl_file fragment_shader,
  enum glsl_program_name const program_index)
 {
-	enum glsl_shader_name shaders[2] = {vertex_shader, fragment_shader};
+	enum glsl_file shaders[2] = {vertex_shader, fragment_shader};
 	return glhBuildAndSaveProgram(metadata, 2, shaders, program_index);
 }
 
@@ -333,4 +333,48 @@ void glhShadersPackLoader
 (struct glsl_programs_shared_data * __restrict const data)
 {
 	fh_WholeFileToBuffer("data/shaders.pack", data);
+}
+
+#define MYY_GLES2_MAX_SHADERS 2
+void glhShadersPackCompileAndLink
+(struct glsl_programs_shared_data * __restrict const data)
+{
+	uint_fast8_t ul = 0;
+
+	for (unsigned int p = 0; p < n_glsl_programs; p++)
+	{
+		LOG("---------- PROGRAM %d ----------\n", p);
+		enum glsl_file shaders[MYY_GLES2_MAX_SHADERS] = {
+			p*MYY_GLES2_MAX_SHADERS, p*MYY_GLES2_MAX_SHADERS+1
+		};
+
+		GLuint program = 
+			glhCompileProgram(data, MYY_GLES2_MAX_SHADERS, shaders);
+
+		struct glsl_elements program_elements = data->metadata[p];
+		char const * __restrict current_identifier =
+			(char const * __restrict)
+			data->identifiers+program_elements.attributes.pos;
+
+		for (unsigned int a = 0; a < program_elements.attributes.n; a++)
+		{
+			glBindAttribLocation(program, a, current_identifier);
+			sh_pointToNextString(current_identifier);
+		}
+		if (glhLinkAndSaveProgram(data, p, program)) {
+			for (uint_fast8_t u = 0;
+				u < program_elements.uniforms.n;
+				u++, ul++)
+			{
+				data->unifs[ul] = 
+					glGetUniformLocation(program, current_identifier);
+				sh_pointToNextString(current_identifier);
+			}
+			glUseProgram(program);
+			for (unsigned int a = 0; a < program_elements.attributes.n; a++)
+				glEnableVertexAttribArray(a);
+		}
+		else LOG("Could not link program %u...\n", p);
+		LOG("========== PROGRAM %d ==========\n", p);
+	}
 }

@@ -1,23 +1,23 @@
 /*
   Copyright (c) 2016 Miouyouyou <Myy>
-  
+
   Permission is hereby granted, free of charge, to any person obtaining
-  a copy of this software and associated documentation files 
-  (the "Software"), to deal in the Software without restriction, 
-  including	without limitation the rights to use, copy, modify, merge, 
-  publish, distribute, sublicense, and/or sell copies of the Software, 
-  and to permit persons to whom the Software is furnished to do so, 
+  a copy of this software and associated documentation files
+  (the "Software"), to deal in the Software without restriction,
+  including	without limitation the rights to use, copy, modify, merge,
+  publish, distribute, sublicense, and/or sell copies of the Software,
+  and to permit persons to whom the Software is furnished to do so,
   subject to the following conditions:
-  
-  The above copyright notice and this permission notice shall be 
+
+  The above copyright notice and this permission notice shall be
   included in all copies or substantial portions of the Software.
-  
-  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, 
-  EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF 
-  MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. 
-  IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY 
-  CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, 
-  TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE 
+
+  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+  EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+  MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+  IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+  CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+  TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
   SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
@@ -65,7 +65,7 @@ unsigned int fh_WholeFileToBuffer
 
 int fh_ReadFileToBuffer
 (char const * __restrict const pathname,
- void * __restrict const buffer, 
+ void * __restrict const buffer,
  unsigned int const size) {
 
 	int bytes_read = -1;
@@ -81,7 +81,7 @@ int fh_ReadFileToBuffer
 
 int fh_ReadFileToStringBuffer
 (char const * __restrict const pathname,
- void * __restrict const buffer, 
+ void * __restrict const buffer,
  unsigned int const size) {
 
 	int bytes_read = fh_ReadFileToBuffer(pathname, buffer, size);
@@ -96,7 +96,7 @@ int fh_ReadBytesFromFile
 (char const * __restrict const pathname,
  void * __restrict const buffer,
  unsigned int const size,
- unsigned int const offset) 
+ unsigned int const offset)
 {
 
 	int bytes_read = -1;
@@ -141,7 +141,7 @@ struct myy_fh_map_handle fh_MapFileToMemory
 	struct myy_fh_map_handle handle = {
 		.ok      = ok,
 		.address = mapped_address,
-		.length  = (int) file_size
+		.length  = file_size
 	};
 	return handle;
 }
