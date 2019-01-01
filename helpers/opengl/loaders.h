@@ -4,140 +4,24 @@
 #include <src/generated/opengl/shaders_infos.h>
 #include <myy/helpers/file.h>
 #include <myy/current/opengl.h>
+#include <myy/helpers/c_types.h>
 #include <stdint.h>
 
-int glhLoadShader
-(GLenum const shaderType, char const * __restrict const name,
- GLuint const program);
+struct shader_load_status {
+	bool ok;
+	GLuint shader_id;
+};
 
-/**
- * Compiles a GLSL program, using informations from the provided
- * metadata, notably metadata->shaders and metadata->strings.
- * These metadata are generated automatically by another software.
- * 
- * @params
- * @param metadata A user-generated structure defining the
- *                 referenced shaders filepaths.
- * @param n_shaders The number of shaders composing the program
- * @param shaders A pointer to a list of user-generated shaders
- *                references to be loaded. The shaders metadata
- *                are provided by the first argument.
- * 
- * @returns The successfully program ID
- * @returns 0 if something went wrong during the program
- *          compilation
- * 
- * @example
- * enum glsl_file {
- * 	text_vsh,
- * 	text_fsh,
- * 	glsl_shaders_count
- * };
- * 
- * struct glsl_programs_shared_data {
- * 	GLuint programs[glsl_programs_count];
- * 	struct glsl_shader shaders[glsl_shaders_count];
- * 	GLchar strings[512];
- * } glsl_shared_data = {
- * 	.programs = {0},
- * 	.strings = {
- * 	  "shaders/standard.vert\0shaders/standard.frag\0"
- * 	},
- * 	.shaders = {
- * 	  [text_vsh] = {
- *	    .type = GL_VERTEX_SHADER,
- *	    .str_pos = 0,
- *	  },
- *	  [text_fsh] = {
- *	    .type = GL_FRAGMENT_SHADER,
- *	    .str_pos = 22,
- *	  }
- *	}
- * };
- * 
- * GLuint loaded_shaders[] = {text_vsh, text_fsh};
- * 
- * glhCompileProgram(&glsl_shared_data, 2, loaded_shaders);
- * 
- */
-unsigned int glhCompileProgram
-(struct glsl_programs_shared_data const * __restrict const metadata,
- unsigned int const n_shaders,
- enum glsl_file const * __restrict const shaders);
+bool glhLinkProgram(
+	GLuint const program_id);
 
-/**
- * Link and Save a precompiled program.
- * The program is saved in metadata->programs[program_index]
- * 
- * @params
- * @param metadata A user-generated structure containing the address
- *                 where to save the linked program reference.
- * @param program_index A user-generated and defined program reference
- *                      index.
- * @param p The GLSL program to link
- * 
- * @returns The saved GLSL reference if linking performed successfully
- * @returns 0 if linking the GLSL program failed.
- */
-unsigned int glhLinkAndSaveProgram
-(struct glsl_programs_shared_data * __restrict const metadata,
- enum glsl_program_name const program_index,
- GLuint const p);
+struct shader_load_status glhLoadShader(
+	GLenum const shaderType,
+	uint8_t const * __restrict const shader_code,
+	GLsizei const shader_code_size,
+	GLuint const program);
 
-/**
- * Compile, Link and Save a GLSL program.
- * This combines glhCompileProgram and glhLinkAndSaveProgram.
- * 
- * @params
- * @param metadata A user-generated structure defining the
- *                 referenced shaders filepaths and the address where
- *                 to save the linked program.
- * @param n_shaders The number of shaders composing the program
- * @param shaders A pointer to a list of user-generated shaders
- *                references to be loaded. The shaders metadata
- *                are provided by the first argument.
- * @param program_index A user-generated and defined program reference
- *                      index.
- * 
- * @returns the saved GLSL program ID if everything went fine.
- * @returns 0 if something went wrong during the compilation or linking
- *          phase.
- */
-unsigned int glhBuildAndSaveProgram
-(struct glsl_programs_shared_data * __restrict const metadata,
- unsigned int const n_shaders,
- enum glsl_file const * __restrict const shaders,
- enum glsl_program_name const program_index);
-
-/**
- * Compile, Link and Save a GLSL program.
- * Compared to glhCompileProgram, this function takes two shaders 
- * references that are expected to be a Vertex Shader reference and a
- * Fragment Shader reference.
- * 
- * That function covers the basic form of GLSL programs.
- * 
- * @param metadata A user-generated structure defining the
- *                 referenced shaders filepaths and the address where
- *                 to save the linked program.
- * @param vertex_shader A user-generated Vertex Shader reference to be
- *                      used in the GLSL program to build.
- * @param fragment_shader A user-generated Fragment Shader reference to
- *                        be used in the GLSL program to build.
- * @param program_index A user-generated and defined program reference
- *                      index.
- * 
- * @returns The saved GLSL program ID if everthing went fine.
- * @returns 0 if something went wrong during the compilation or linking
- *          phase.
- */
-unsigned int glhBuildAndSaveSimpleProgram
-(struct glsl_programs_shared_data * __restrict const metadata,
- enum glsl_file vertex_shader,
- enum glsl_file fragment_shader,
- enum glsl_program_name const program_index);
-
-GLuint glhSetupProgram
+GLuint glhBuildProgramFromFiles
 (char const * __restrict const vsh_filename,
  char const * __restrict const fsh_filename,
  uint8_t const n_attributes,
@@ -149,19 +33,28 @@ GLuint glhSetupAndUse
  uint8_t n_attributes,
  char const * __restrict const attributes_names);
 
-struct myy_raw_texture_content {
+#define MYYT_SIGNATURE 0x5459594d
+struct myy_raw_texture_header {
+	/* Must be 0x5459594d */
+	uint32_t const signature;
 	/* The texture width */
 	uint32_t const width;
 	/* The texture height */
 	uint32_t const height;
 	/* myy_target = gl_target */
-	uint32_t const myy_target;
+	uint32_t const gl_target;
 	/* myy_format = gl_format */
-	uint32_t const myy_format;
+	uint32_t const gl_format;
 	/* myy_type   = gl_type   */
-	uint32_t const myy_type;
+	uint32_t const gl_type;
 	/* Used for glPixelStorei */
 	uint32_t const alignment;
+	/* Reserved */
+	uint32_t const reserved;
+};
+
+struct myy_raw_texture_content {
+	struct myy_raw_texture_header header;
 	/* The texture raw data */
 	uint32_t const data[];
 };
@@ -217,19 +110,5 @@ void glhUploadMyyRawTextures
  */
 void glhActiveTextures
 (GLuint const * const texids, int const n_textures);
-
-/**
- * Prepare a glsl_programs_shared_data structure using the provided
- * shaders.pack file.
- * 
- * The structure can then be used with others functions like 
- * glhBuildAndSaveProgram.
- * 
- * parameters :
- *   @param data The structure to fill in.
- * 
- */
-void glhShadersPackLoader
-(struct glsl_programs_shared_data * __restrict const data);
 
 #endif

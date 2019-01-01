@@ -4,78 +4,92 @@
 #include <myy/helpers/log.h>
 #include <myy/helpers/strings.h>
 
+#include <myy/helpers/memory.h>
+
 #include <string.h>
 
+static void print_codepoint_and_metadata(
+	struct myy_packed_fonts_glyphdata const * __restrict const glyphs,
+	uint32_t const * __restrict const codepoints,
+	uint_fast32_t const index)
+{
+	struct myy_packed_fonts_glyphdata const glyph = glyphs[index];
+	uint32_t codepoint = codepoints[index];
+	char codepoint_str[5] = {0};
+	utf32_to_utf8_string(codepoint, codepoint_str);
+	printf(
+		"Codepoint  : %d (%s)\n"
+		"Glyph_data\n"
+		"\tTexture (%d←→%d) (%d↓↑%d)\n"
+		"\tOrigin offset (→%d, ↓%d)\n"
+		"\tAdvance (→%d, ↓%d)\n",
+		codepoint, codepoint_str,
+		glyph.tex_left,     glyph.tex_right,
+		glyph.tex_bottom,   glyph.tex_top,
+		glyph.offset_x_px,  glyph.offset_y_px,
+		glyph.advance_x_px, glyph.advance_y_px);
+}
+
 static void print_stored_codepoints_infos
-(struct glyph_infos const * __restrict const glyph_infos) {
+(struct gl_text_infos const * __restrict const glyph_infos) {
 	unsigned int n_codepoints = glyph_infos->stored_codepoints;
 	struct myy_packed_fonts_glyphdata const * __restrict const glyphs =
-	  glyph_infos->glyphdata_addr;
-	struct myy_packed_fonts_codepoints const * __restrict const codepoints =
-	  glyph_infos->codepoints_addr;
+		glyph_infos->glyphdata_addr;
+	uint32_t const * __restrict const codepoints =
+		glyph_infos->codepoints_addr;
 
-	struct myy_packed_fonts_glyphdata const * __restrict current_glyph;
-	uint32_t current_codepoint;
-	char converted_codepoint[8] = {0};
-	LOG("[print_stored_codepoints_infos]\n");
+
 	for (unsigned int i = 0; i < n_codepoints; i++) {
-		memset(converted_codepoint, 0, 8);
-		current_codepoint = codepoints[i].codepoint;
-		utf32_to_utf8_string(current_codepoint, converted_codepoint);
-		current_glyph = glyphs+i;
-		LOG("  %s (%d) ↓\n"
-		    "  Tex: left: %d, right: %d, bottom: %d, top: %d\n"
-		    "  Off: x: %dpx, y: %dpx\n"
-		    "  Siz: width: %d px, height: %d px\n",
-		    converted_codepoint, current_codepoint,
-		    current_glyph->tex_left,    current_glyph->tex_right,
-		    current_glyph->tex_bottom,  current_glyph->tex_top,
-		    current_glyph->offset_x_px, current_glyph->offset_y_px,
-		    current_glyph->width_px,    current_glyph->height_px
-		);
+		print_codepoint_and_metadata(glyphs, codepoints, i);
 	}
 }
 
-void myy_parse_packed_fonts
-(struct glyph_infos * __restrict const glyph_infos,
- char const * __restrict const filename) {
+struct gl_text_infos myy_packed_fonts_load(
+	char const * __restrict const filename,
+	struct myy_fh_map_handle * __restrict const out_handle)
+{
 
-	struct myy_packed_fonts_info_header header;
-	fh_ReadBytesFromFile(
-	  filename, (uint8_t *) &header, sizeof(header), 0
-	);
+	/* Why do a copy though ?
+	 * We could just put const pointers to the mapped file...
+	 */
+	struct myy_fh_map_handle mapping = fh_MapFileToMemory(filename);
+	struct myy_packed_fonts_info_header const * __restrict header;
+
+	if (out_handle != NULL)
+		*out_handle = mapping;
+
+	if (!mapping.ok) {
+		LOG("Could not open the font metadata : %s\n", filename);
+		struct gl_text_infos bogus = {0, 0, 0};
+		return bogus;
+	}
+
+	header =
+		(struct myy_packed_fonts_info_header const * __restrict)
+		mapping.address;
 
 	LOG("[myy_parse_packed_fonts]\n"
 	    "  filename                   : %s\n"
 	    "  Codepoints stored          : %d\n"
 	    "  Codepoints starting offset : %d\n"
 	    "  Glyph data start offset    : %d\n"
-	    "  Linked Font filename size  : %d\n"
-	    "  Linked Font filename       : %s\n",
+	    "  Texture names offset       : %d\n",
 	    filename,
-	    header.n_stored_codepoints,
-	    header.codepoints_start_offset,
-	    header.glyphdata_start_offset,
-	    header.font_filename_size,
-	    header.font_filename
-	);
+	    header->n_stored_codepoints,
+	    header->codepoints_start_offset,
+	    header->glyphdata_start_offset,
+	    header->texture_filenames_offset);
 
-	fh_ReadBytesFromFile(
-	  filename, (uint8_t *) glyph_infos->codepoints_addr,
-	  header.n_stored_codepoints *
-	  sizeof(struct myy_packed_fonts_codepoints),
-	  header.codepoints_start_offset
-	);
 
-	fh_ReadBytesFromFile(
-	  filename, (uint8_t *) glyph_infos->glyphdata_addr,
-	  header.n_stored_codepoints *
-	  sizeof(struct myy_packed_fonts_glyphdata),
-	  header.glyphdata_start_offset
-	);
+	struct gl_text_infos infos = {
+		.stored_codepoints = header->n_stored_codepoints,
+		.codepoints_addr =
+			(mapping.address + header->codepoints_start_offset),
+		.glyphdata_addr =
+			(mapping.address + header->glyphdata_start_offset)
+	};
 
-	glyph_infos->stored_codepoints = header.n_stored_codepoints;
-
-	//print_stored_codepoints_infos(glyph_infos);
+	print_stored_codepoints_infos(&infos);
+	return infos;
 }
 

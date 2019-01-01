@@ -33,7 +33,7 @@ static const struct gleanup cleanupMethods[] = {
 	}
 };
 
-static int check_if_ok
+static bool check_if_ok
 (GLuint const element, GLuint const method_id)
 {
 	struct gleanup gheckup = cleanupMethods[method_id];
@@ -41,156 +41,130 @@ static int check_if_ok
 	GLint ok = GL_FALSE;
 	gheckup.check(element, gheckup.verif, &ok);
 
-	if (ok == GL_TRUE) return ok;
+	if (ok == GL_TRUE) return true;
 
 	int written = 0;
-  /* "1KB should be enough for every log" */
+	/* "1KB should be enough for every log" */
 	GLchar log_data[1024] = {0};
 	gheckup.log(element, 1022, &written, (GLchar *) log_data);
 	log_data[written] = 0;
 	LOG("Problem was : %s\n", log_data);
 
-	return GL_FALSE;
+	return false;
 }
 
-int glhLoadShader
-(GLenum const shaderType,
- char const * __restrict const pathname,
- GLuint const program)
+bool glhLinkProgram(
+	GLuint const program_id)
+{
+	glLinkProgram(program_id);
+	return check_if_ok(program_id, GL_PROGRAM_PROBLEMS);
+}
+
+struct shader_load_status glhLoadShader(
+	GLenum const shaderType,
+	uint8_t const * __restrict const shader_code,
+	GLsizei const shader_code_size,
+	GLuint const program)
 {
 
-	LOG("Shader : %s - Type : %d\n",
-	    pathname, shaderType);
 	GLuint shader = glCreateShader(shaderType);
-	LOG("Loading shader : %s - glCreateShader : %d\n",
-	    pathname, shader);
-	GLuint ok = 0;
+	bool ok = false;
 
-  if (shader) {
-		LOG("Shader %s seems ok...\n", pathname);
-		struct myy_fh_map_handle mapped_file_infos =
-			fh_MapFileToMemory(pathname);
-		if (mapped_file_infos.ok) {
-			GLchar const * const * __restrict const shader_code =
-				(GLchar const * const *) &mapped_file_infos.address;
-
-			glShaderSource(shader, 1, shader_code, &mapped_file_infos.length);
-			glCompileShader(shader);
-			ok = check_if_ok(shader, GL_SHADER_PROBLEMS);
-			if (ok) glAttachShader(program, shader);
-			glDeleteShader(shader);
-			fh_UnmapFileFromMemory(mapped_file_infos);
-		}
+	if (shader) {
+		glShaderSource(
+			shader, 1,
+			(GLchar const * const *) (&shader_code),
+			&shader_code_size);
+		glCompileShader(shader);
+		ok = check_if_ok(shader, GL_SHADER_PROBLEMS);
+		if (ok) glAttachShader(program, shader);
+		glDeleteShader(shader);
 	}
-	LOG("Shader %s -> Status : %d\n", pathname, program);
-  return ok;
+	LOG("[glhLoadShader] Status : %d\n", ok);
+	struct shader_load_status status = {
+		.ok = ok,
+		.shader_id = shader
+	};
+	return status;
 }
 
-unsigned int glhCompileProgram
-(struct glsl_programs_shared_data const * __restrict const metadata,
- unsigned int const n_shaders,
- enum glsl_file const * __restrict const shaders)
+struct shader_load_status glhLoadShaderFile(
+	GLenum const shaderType,
+	char const * __restrict const filepath,
+	GLuint const program)
 {
-	GLuint p = glCreateProgram();
-	GLuint ok = 1;
-	for (unsigned int s = 0; s < n_shaders; s++) {
-		enum glsl_file shader_index = shaders[s];
-		struct glsl_shader const shader = metadata->shaders[shader_index];
 
-		GLchar const * const shader_filepath =
-			(GLchar const *) metadata->strings+shader.str_pos;
-		ok &= (glhLoadShader(shader.type, shader_filepath, p) != 0);
-		LOG("Status after loading %s --- %d\n",
-		    shader_filepath, ok);
+	struct myy_fh_map_handle mapping =
+		fh_MapFileToMemory(filepath);
+
+	struct shader_load_status status = {
+		.ok = false,
+		.shader_id = 0
+	};
+	if (mapping.ok) {
+		LOG("Loading shader file : %s\n", filepath);
+		status = glhLoadShader(
+			shaderType, mapping.address, mapping.length, program);
+		fh_UnmapFileFromMemory(mapping);
 	}
 
-	GLuint ret = 0;
-	if (ok) ret = p;
-	else LOG("A problem occured during the creation of the program...\n");
-
-	return ret;
+	return status;
 }
 
-unsigned int glhLinkAndSaveProgram
-(struct glsl_programs_shared_data * __restrict const metadata,
- enum glsl_program_name const program_index,
- GLuint const p)
-{
-	unsigned int ret = 0;
-	if (p) {
-		glLinkProgram(p);
-		if (check_if_ok(p, GL_PROGRAM_PROBLEMS)) {
-			metadata->programs[program_index] = p;
-			ret = 1;
-		}
-		else LOG("An error occured during the linking phase...\n");
-	}
-	else LOG("Invalid program !\n");
-	return ret;
-}
-
-unsigned int glhBuildAndSaveProgram
-(struct glsl_programs_shared_data * __restrict const metadata,
- unsigned int const n_shaders,
- enum glsl_file const * __restrict const shaders,
- enum glsl_program_name const program_index)
-{
-	GLuint program = glhCompileProgram(metadata, n_shaders, shaders);
-	glhLinkAndSaveProgram(metadata, program_index, program);
-	return program;
-}
-
-unsigned int glhBuildAndSaveSimpleProgram
-(struct glsl_programs_shared_data * __restrict const metadata,
- enum glsl_file vertex_shader,
- enum glsl_file fragment_shader,
- enum glsl_program_name const program_index)
-{
-	enum glsl_file shaders[2] = {vertex_shader, fragment_shader};
-	return glhBuildAndSaveProgram(metadata, 2, shaders, program_index);
-}
-
-GLuint glhSetupProgram
+GLuint glhBuildProgramFromFiles
 (char const * __restrict const vsh_filename,
  char const * __restrict const fsh_filename,
  uint8_t const n_attributes,
  char const * __restrict const attributes_names)
 {
 	GLuint p = glCreateProgram();
+	struct shader_load_status status;
+	GLuint vertex_shader   = 0;
+	GLuint fragment_shader = 0;
+	char const * bound_attribute_name;
 
-	/* Shaders */
-	if (glhLoadShader(GL_VERTEX_SHADER,   vsh_filename, p) &&
-	    glhLoadShader(GL_FRAGMENT_SHADER, fsh_filename, p)) {
+	if (p == 0)
+		goto could_not_create_program;
 
-		LOG("Shaders loaded\n");
-		// Flash quiz : Why bound_attribute_name can be updated ?
-		char const * bound_attribute_name = attributes_names;
-		for (uint32_t i = 0; i < n_attributes; i++) {
-			glBindAttribLocation(p, i, bound_attribute_name);
-			LOG("Attrib : %s - Location : %d\n", bound_attribute_name, i);
-			sh_pointToNextString(bound_attribute_name);
-		}
-		glLinkProgram(p);
-		if (check_if_ok(p, GL_PROGRAM_PROBLEMS)) return p;
+	/* Shaders phase */
+	LOG("[glhBuildProgramFromFiles]\n");
+	LOG("Loading Vertex shader : %s\n", vsh_filename);
+	status = glhLoadShaderFile(GL_VERTEX_SHADER, vsh_filename, p);
+	if (!status.ok)
+		goto could_not_load_vertex_shader;
+	vertex_shader = status.shader_id;
+
+	LOG("Loading Fragment shader : %s\n", fsh_filename);
+	status = glhLoadShaderFile(GL_FRAGMENT_SHADER, fsh_filename, p);
+	if (!status.ok)
+		goto could_not_load_fragment_shader;
+	fragment_shader = status.shader_id;
+
+	LOG("Shaders loaded\n");
+	bound_attribute_name = attributes_names;
+
+	for (uint32_t i = 0; i < n_attributes; i++) {
+		glBindAttribLocation(p, i, bound_attribute_name);
+		LOG("Attrib : %s - Location : %d\n", bound_attribute_name, i);
+		sh_pointToNextString(bound_attribute_name);
 	}
-	LOG("A problem occured during the creation of the program\n");
-	return 0;
 
-}
+	if (!glhLinkProgram(p)) {
+		LOG("Could not link the program.\n");
+		goto could_not_link_program;
+	}
 
-GLuint glhSetupAndUse
-(char const * __restrict const vsh_filename,
- char const * __restrict const fsh_filename,
- uint8_t n_attributes,
- char const * __restrict const attributes_names)
-{
-	GLuint p =
-		glhSetupProgram(vsh_filename, fsh_filename, n_attributes, attributes_names);
-	glUseProgram(p);
+	return p;
+
+could_not_link_program:
+	glDeleteShader(fragment_shader);
+could_not_load_fragment_shader:
+	glDeleteShader(vertex_shader);
+could_not_load_vertex_shader:
+	glDeleteProgram(p);
+could_not_create_program:
 	return p;
 }
-
-
 
 /* TODO : This must be customised */
 static void setupTexture()
@@ -266,21 +240,22 @@ void glhUploadMyyRawTextures
 			struct myy_raw_texture_content const * const tex = 
 				(struct myy_raw_texture_content const *)
 				mapped_file_infos.address;
+			struct myy_raw_texture_header header = tex->header;
 
-			glBindTexture(tex->myy_target, texid[i]);
-			glPixelStorei(GL_UNPACK_ALIGNMENT, tex->alignment);
+			glBindTexture(header.gl_target, texid[i]);
+			glPixelStorei(GL_UNPACK_ALIGNMENT, header.alignment);
 			LOG(
 			  "glPixelStorei(%d)\n"
 			  "glTexImage2D(%d, %d, %d, %d, %d, %d, %d, %d, %p)\n",
-			  tex->alignment,
-			  tex->myy_target, 0, tex->myy_format,
-			  tex->width, tex->height, 0,
-			  tex->myy_format, tex->myy_type, tex->data
+			  header.alignment,
+			  header.gl_target, 0, header.gl_format,
+			  header.width, header.height, 0,
+			  header.gl_format, header.gl_type, tex->data
 			);
 			glTexImage2D(
-			  tex->myy_target, 0, tex->myy_format,
-			  tex->width, tex->height, 0,
-			  tex->myy_format, tex->myy_type, tex->data
+			  header.gl_target, 0, header.gl_format,
+			  header.width, header.height, 0,
+			  header.gl_format, header.gl_type, tex->data
 			);
 			setupTexture();
 
@@ -315,66 +290,5 @@ void glhActiveTextures
 	for (unsigned int i = 0; i < n_textures; i++) {
 		glActiveTexture(GL_TEXTURE0+i);
 		glBindTexture(GL_TEXTURE_2D, texids[i]);
-	}
-}
-
-/**
- * Prepare a glsl_programs_shared_data structure using the provided
- * shaders.pack file.
- * 
- * The structure can then be used with others functions like 
- * glhBuildAndSaveProgram.
- * 
- * parameters :
- *   @param data The structure to fill in.
- * 
- */
-void glhShadersPackLoader
-(struct glsl_programs_shared_data * __restrict const data)
-{
-	fh_WholeFileToBuffer("data/shaders.pack", data);
-}
-
-#define MYY_GLES2_MAX_SHADERS 2
-void glhShadersPackCompileAndLink
-(struct glsl_programs_shared_data * __restrict const data)
-{
-	uint_fast8_t ul = 0;
-
-	for (unsigned int p = 0; p < n_glsl_programs; p++)
-	{
-		LOG("---------- PROGRAM %d ----------\n", p);
-		enum glsl_file shaders[MYY_GLES2_MAX_SHADERS] = {
-			p*MYY_GLES2_MAX_SHADERS, p*MYY_GLES2_MAX_SHADERS+1
-		};
-
-		GLuint program = 
-			glhCompileProgram(data, MYY_GLES2_MAX_SHADERS, shaders);
-
-		struct glsl_elements program_elements = data->metadata[p];
-		char const * __restrict current_identifier =
-			(char const * __restrict)
-			data->identifiers+program_elements.attributes.pos;
-
-		for (unsigned int a = 0; a < program_elements.attributes.n; a++)
-		{
-			glBindAttribLocation(program, a, current_identifier);
-			sh_pointToNextString(current_identifier);
-		}
-		if (glhLinkAndSaveProgram(data, p, program)) {
-			for (uint_fast8_t u = 0;
-				u < program_elements.uniforms.n;
-				u++, ul++)
-			{
-				data->unifs[ul] = 
-					glGetUniformLocation(program, current_identifier);
-				sh_pointToNextString(current_identifier);
-			}
-			glUseProgram(program);
-			for (unsigned int a = 0; a < program_elements.attributes.n; a++)
-				glEnableVertexAttribArray(a);
-		}
-		else LOG("Could not link program %u...\n", p);
-		LOG("========== PROGRAM %d ==========\n", p);
 	}
 }
