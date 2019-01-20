@@ -35,22 +35,14 @@ GLuint glhSetupAndUse
 
 #define MYYT_SIGNATURE 0x5459594d
 struct myy_raw_texture_header {
-	/* Must be 0x5459594d */
-	uint32_t const signature;
-	/* The texture width */
-	uint32_t const width;
-	/* The texture height */
-	uint32_t const height;
-	/* myy_target = gl_target */
-	uint32_t const gl_target;
-	/* myy_format = gl_format */
-	uint32_t const gl_format;
-	/* myy_type   = gl_type   */
-	uint32_t const gl_type;
-	/* Used for glPixelStorei */
-	uint32_t const alignment;
-	/* Reserved */
-	uint32_t const reserved;
+	uint32_t const signature; /* Must be 0x5459594d */
+	uint32_t const width;     /* The texture width */
+	uint32_t const height;    /* The texture height */
+	uint32_t const gl_target; /* myy_target = gl_target */
+	uint32_t const gl_format; /* myy_format = gl_format */
+	uint32_t const gl_type;   /* myy_type   = gl_type   */
+	uint32_t const alignment; /* Used for glPixelStorei */
+	uint32_t const reserved;  /* Reserved */
 };
 
 struct myy_raw_texture_content {
@@ -58,6 +50,50 @@ struct myy_raw_texture_content {
 	/* The texture raw data */
 	uint32_t const data[];
 };
+
+struct myy_sampler_properties {
+	GLint wrap_s;     /* GL_CLAMP_TO_EDGE, ... */
+	GLint wrap_t;     /* GL_CLAMP_TO_EDGE, ... */
+	GLint min_filter; /* GL_NEAREST, GL_LINEAR */
+	GLint max_filter; /* GL_{MIPMAP,}_{NEAREST,LINEAR} */
+};
+
+__attribute__((unused))
+static inline struct myy_sampler_properties
+myy_sampler_properties_default()
+{
+	
+	struct myy_sampler_properties const properties = {
+		.wrap_s     = GL_CLAMP_TO_EDGE,
+		.wrap_t     = GL_CLAMP_TO_EDGE,
+		.min_filter = GL_LINEAR,
+		.max_filter = GL_LINEAR
+	};
+
+	return properties;
+}
+
+/**
+ *  Upload a "myyraw" texture to the GPU.
+ * 
+ * The texture will be bound to the current texture unit.
+ * Choose the right active texture unit before calling this
+ * function.
+ * 
+ * @param data
+ * The texture data.
+ *
+ * @param texture_id
+ * The texture id where to store the data
+ *
+ * @param props
+ * The texture sampler properties
+ */
+void glhUploadMyyRawTextureData(
+	uint8_t const * __restrict const data,
+	GLuint const texture_id,
+	struct myy_sampler_properties const * __restrict
+		const sampler_properties);
 
 /**
  *  Create n textures buffers and upload the content of

@@ -2,7 +2,7 @@
 #include <stdint.h>
 #include <string.h>
 
-#include <vector.h>
+#include <myy/helpers/vector.h>
 
 bool myy_vector_add(
 	struct myy_vector * const vector,

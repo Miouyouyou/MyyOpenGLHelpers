@@ -176,7 +176,7 @@ bool myy_shaders_pack_load_all_programs(
 		goto bad_signature;
 	}
 
-	print_header(pack);
+	print_header(header);
 	data_section     = pack + header->data_offset;
 	metadata_section = pack + header->metadata_offset;
 	programs         = 

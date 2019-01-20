@@ -24,7 +24,7 @@
 #ifndef MYY_LOG_H
 #define MYY_LOG_H 1
 
-#if defined(DEBUG)
+#if !defined(NDEBUG)
 #if defined(__ANDROID__)
 
 #include <android/log.h>
@@ -40,8 +40,8 @@
 #define LOG_ERRNO(...)  fprintf(stderr, "Error : %s\n", strerror(errno)); fprintf(stderr, __VA_ARGS__)
 
 #endif
-#else // DEBUG
+#else // NDEBUG
 #define LOG(...)
 #define LOG_ERRNO(...)
-#endif // DEBUG
+#endif // NDEBUG
 #endif

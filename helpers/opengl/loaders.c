@@ -167,13 +167,45 @@ could_not_create_program:
 }
 
 /* TODO : This must be customised */
-static void setupTexture()
+static void setupTexture(
+	struct myy_sampler_properties const sampler_properties)
 {
-  glGenerateMipmap(GL_TEXTURE_2D);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glGenerateMipmap(GL_TEXTURE_2D);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S,
+		sampler_properties.wrap_s);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T,
+		sampler_properties.wrap_t);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER,
+		sampler_properties.max_filter);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER,
+		sampler_properties.min_filter);
+}
+
+void glhUploadMyyRawTextureData(
+	uint8_t const * __restrict const data,
+	GLuint const texture_id,
+	struct myy_sampler_properties const * __restrict
+		const sampler_properties)
+{
+	struct myy_raw_texture_content const * const tex = 
+		(struct myy_raw_texture_content const *)
+		data;
+	struct myy_raw_texture_header header = tex->header;
+
+	glBindTexture(header.gl_target, texture_id);
+	glPixelStorei(GL_UNPACK_ALIGNMENT, header.alignment);
+	LOG(
+		"glPixelStorei(%d)\n"
+		"glTexImage2D(%d, %d, %d, %d, %d, %d, %d, %d, %p)\n",
+		header.alignment,
+		header.gl_target, 0, header.gl_format,
+		header.width, header.height, 0,
+		header.gl_format, header.gl_type, tex->data);
+	glTexImage2D(
+		header.gl_target, 0, header.gl_format,
+		header.width, header.height, 0,
+		header.gl_format, header.gl_type, tex->data);
+	setupTexture(*sampler_properties);
 }
 
 /**
@@ -214,7 +246,7 @@ void glhUploadMyyRawTextures
 	 * From what I understand :
 	 * - The current activated texture unit is changed through
 	 *   glActiveTexture.
-	 * - glGenTextures will generate names for textures *storage* units.
+	 * - glGenTextures will generate texture *names*.
 	 * - glBindTexture will bind the current *storage* unit to the current
 	 *   activated texture unit and, on the first time, will define the
 	 *   current *storage* unit parameters.
@@ -227,6 +259,9 @@ void glhUploadMyyRawTextures
 
 	const char *current_name = textures_names;
 
+	struct myy_sampler_properties sampler_properties =
+		myy_sampler_properties_default();
+
 	for (int i = 0; i < n; i++) {
 		/* glTexImage2D
 		   Specifies a two-dimensional or cube-map texture for the current
@@ -236,29 +271,11 @@ void glhUploadMyyRawTextures
 		struct myy_fh_map_handle mapped_file_infos =
 			fh_MapFileToMemory(current_name);
 		if (mapped_file_infos.ok) {
-
-			struct myy_raw_texture_content const * const tex = 
-				(struct myy_raw_texture_content const *)
-				mapped_file_infos.address;
-			struct myy_raw_texture_header header = tex->header;
-
-			glBindTexture(header.gl_target, texid[i]);
-			glPixelStorei(GL_UNPACK_ALIGNMENT, header.alignment);
-			LOG(
-			  "glPixelStorei(%d)\n"
-			  "glTexImage2D(%d, %d, %d, %d, %d, %d, %d, %d, %p)\n",
-			  header.alignment,
-			  header.gl_target, 0, header.gl_format,
-			  header.width, header.height, 0,
-			  header.gl_format, header.gl_type, tex->data
-			);
-			glTexImage2D(
-			  header.gl_target, 0, header.gl_format,
-			  header.width, header.height, 0,
-			  header.gl_format, header.gl_type, tex->data
-			);
-			setupTexture();
-
+			glhUploadMyyRawTextureData(
+				(uint8_t const * __restrict)
+				mapped_file_infos.address,
+				texid[i],
+				&sampler_properties);
 			fh_UnmapFileFromMemory(mapped_file_infos);
 			sh_pointToNextString(current_name);
 		}

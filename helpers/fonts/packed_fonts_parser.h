@@ -4,6 +4,18 @@
 #include <stdint.h>
 
 #include <myy/helpers/file.h>
+#include <myy/helpers/vector.h>
+
+#include <myy/helpers/opengl/loaders.h>
+#include <myy/current/opengl.h>
+
+/* Please, keep it a power of 2 size */
+struct myy_gl_text_quad {
+	int16_t left, right, down, up;
+	int16_t tex_left, tex_right, tex_down, tex_up;
+};
+
+myy_vector_template(quads, struct myy_gl_text_quad)
 
 #define MYYF_SIGNATURE 0x4659594d
 struct myy_packed_fonts_info_header {
@@ -37,14 +49,19 @@ struct myy_packed_fonts_glyphdata {
 };
 
 struct gl_text_infos {
-	uint32_t const stored_codepoints;
-	uint32_t const * __restrict const codepoints_addr;
-	struct myy_packed_fonts_glyphdata const * __restrict const glyphdata_addr;
+	uint32_t stored_codepoints;
+	uint32_t const * __restrict codepoints_addr;
+	struct myy_packed_fonts_glyphdata const * __restrict glyphdata_addr;
+	myy_vector_quads * __restrict quads;
+	int16_t tex_width, tex_height;
+	GLuint tex_id;
 };
 
-struct gl_text_infos myy_packed_fonts_load(
+bool myy_packed_fonts_load(
 	char const * __restrict const filename,
-	struct myy_fh_map_handle * __restrict const out_handle);
+	struct gl_text_infos * __restrict const infos,
+	struct myy_fh_map_handle * __restrict const out_handle,
+	struct myy_sampler_properties * __restrict const sample_props);
 
 static inline void myy_packed_fonts_unload(
 	struct myy_fh_map_handle handle)

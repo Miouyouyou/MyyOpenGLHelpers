@@ -2,46 +2,29 @@
 #include <myy/helpers/log.h>
 #include <myy/helpers/strings.h>
 
-static unsigned int find_codepoint_in
-(uint32_t const * __restrict const codepoints,
- uint32_t searched_codepoint) {
+#include <stdint.h>
+
+static unsigned int find_codepoint_in(
+	uint32_t const * __restrict const codepoints,
+	uint32_t const searched_codepoint)
+{
 	unsigned int i = 1;
-	while (codepoints[i] &&
-	       (codepoints[i] != searched_codepoint))
+	while (codepoints[i] && (codepoints[i] != searched_codepoint))
 		i++;
 	unsigned int found_index =
-	  i * (codepoints[i] == searched_codepoint);
+		i * (codepoints[i] == searched_codepoint);
 	return found_index;
 }
 
-/* This is outdated : All the quads must be generated in advance and
- * stored somewhere.
- *
- * Storing in :
- * CPU Memory : More data to pass to the GPU every time
- * GPU Memory : Too much data when passing everything at once
- *
- * However, there's still two things to take in mind :
- * - Either the text is predetermined, without effects (like
- *   typewriter effect, with characters appearing one by one) and it
- *   might be faster to render the shown texts in an external texture.
- * - Or the text is dynamic and it might be better to generate only
- *   the characters needed on the fly, store them in the GPU and use
- *   them when needed.
- *
- * At the moment, a mix of these solutions will be used. Only a subset
- * of characters will be pre-generated and rendered dynamically.
- *
- * Still, for a HUD, static rendering might make things way easier,
- * if no alpha channel is involved.
- *
- */
-int16_t myy_glyph_to_twotris_quad(
+
+/* WARNING Currently broken */
+int16_t myy_glyph_to_twotris_quad_window_coords(
 	struct gl_text_infos const * __restrict const gl_text_infos,
 	uint32_t const codepoint,
-	US_two_tris_quad_3D * __restrict const quad,
-	int16_t x_offset_px)
+	position_S const text_pos)
 {
+
+	int16_t new_x = text_pos.x;
 
 	uint32_t const * __restrict const codepoints =
 	  gl_text_infos->codepoints_addr;
@@ -52,31 +35,30 @@ int16_t myy_glyph_to_twotris_quad(
 		struct myy_packed_fonts_glyphdata const * __restrict const glyphdata =
 		  gl_text_infos->glyphdata_addr+codepoint_index;
 
-		int16_t glyph_x_offset_px = glyphdata->offset_x_px + x_offset_px;
-		int16_t glyph_y_offset_px = glyphdata->offset_y_px;
-		int16_t right_px = glyphdata->width_px  + glyph_x_offset_px;
-		int16_t up_px    = glyphdata->height_px + glyph_y_offset_px;
-		int16_t advance_x = x_offset_px + glyphdata->advance_x_px;
+		int16_t glyph_x_offset_px =
+			glyphdata->offset_x_px + new_x;
+		int16_t glyph_y_offset_px =
+			glyphdata->offset_y_px;
+		int16_t right_px =
+			glyphdata->width_px  + glyph_x_offset_px;
+		int16_t up_px =
+			glyphdata->height_px + glyph_y_offset_px;
+		int16_t advance_x =
+			new_x + glyphdata->advance_x_px;
 
 		uint16_t const
 		  left  = glyph_x_offset_px,
 		  right = right_px,
 		  down  = glyph_y_offset_px,
 		  up    = up_px,
-		  layer = 32,
 		  tex_left  = glyphdata->tex_left,
 		  tex_right = glyphdata->tex_right,
 		  tex_up    = glyphdata->tex_top,
 		  tex_down  = glyphdata->tex_bottom;
 
-		US_two_tris_quad_3D_store(
-			quad,
-			left, right, up, down, layer,
-			tex_left, tex_right, tex_up, tex_down
-		);
 		return advance_x;
 	}
-	return x_offset_px;
+	return new_x;
 }
 
 static void print_codepoint_and_metadata(
@@ -101,214 +83,141 @@ static void print_codepoint_and_metadata(
 		glyph.advance_x_px, glyph.advance_y_px);
 }
 
+
 /* This *heavily* depends on the current coordinate system in use.
-	* While using the OpenGL coordinate system seems natural with
-	* OpenGL, it feels extremely weird with the Windowing coordinate
-	* system.
-	* 
-	* The problem :
-	* - In OpenGL, Y goes UP meaning that higher values point at the 
-	*   top of the screen and lower values point at the bottom.
-	* - In Windowing coordinates systems, Y goes DOWN, meaning that
-	*   higher values point at the bottom and lower values point at
-	*   the top.
-	*
-	* The OpenGL really makes sense until you think about how you'll
-	* organise text in a window. When you're use to TOP-BOTTOM writing
-	* systems (like European and some Asiatic languages), when you'll
-	* create a window, you'll "start writing at y pixels from the TOP".
-	* You could said that you'll start writing at -y pixels from the
-	* TOP but that does not appear natural to me.
-	* 
-	* Still... I'm really hesitating on that one... */
-void myy_glyph_to_twotris_quad_window_coords
-(struct gl_text_infos const * __restrict const gl_text_infos,
- uint32_t const codepoint,
- US_two_tris_quad_3D * __restrict const quad,
- position_S * __restrict const offset) {
+ * While using the OpenGL coordinate system seems natural with
+ * OpenGL, it feels extremely weird with the Windowing coordinate
+ * system.
+ * 
+ * The problem :
+ * - In OpenGL, Y goes UP meaning that higher values point at the 
+ *   top of the screen and lower values point at the bottom.
+ * - In Windowing coordinates systems, Y goes DOWN, meaning that
+ *   higher values point at the bottom and lower values point at
+ *   the top.
+ *
+ * The OpenGL really makes sense until you think about how you'll
+ * organise text in a window. When you're use to TOP-BOTTOM writing
+ * systems (like European, Arabic and some Asiatic languages), when
+ * you'll create a window, you'll "start writing at y pixels from
+ * the TOP".
+ * You could said that you'll start writing at -y pixels from the
+ * TOP but that does not appear natural to me.
+ */
+int16_t myy_glyph_to_quad_window_coords(
+	struct gl_text_infos const * __restrict const gl_text_infos,
+	uint32_t const codepoint,
+	position_S const text_pos)
+{
+
+	int16_t new_x = text_pos.x;
 
 	uint32_t const * __restrict const codepoints =
-	  gl_text_infos->codepoints_addr;
+		gl_text_infos->codepoints_addr;
 
 	unsigned int codepoint_index =
-	  find_codepoint_in(codepoints, codepoint);
-	position_S text_pos = *offset;
+		find_codepoint_in(codepoints, codepoint);
+
 	if (codepoint_index) {
 		struct myy_packed_fonts_glyphdata const * __restrict const glyphdata =
 		  gl_text_infos->glyphdata_addr+codepoint_index;
+		myy_vector_quads * __restrict const quads =
+			gl_text_infos->quads;
 
-		print_codepoint_and_metadata(glyphdata, codepoints, codepoint_index);
-		int16_t glyph_x_offset_px = glyphdata->offset_x_px + text_pos.x;
-		int16_t glyph_y_offset_px = text_pos.y - glyphdata->offset_y_px;
-		int16_t right_px = glyphdata->width_px  + glyph_x_offset_px;
-		int16_t up_px    = glyph_y_offset_px - glyphdata->height_px;
-		int16_t advance_x = text_pos.x + glyphdata->advance_x_px;
+		int16_t const glyph_x_offset_px =
+			new_x + glyphdata->offset_x_px;
+		int16_t const glyph_y_offset_px =
+			text_pos.y - glyphdata->offset_y_px;
+		int16_t const right_px =
+			glyph_x_offset_px + glyphdata->width_px;
+		int16_t const up_px    =
+			glyph_y_offset_px - glyphdata->height_px;
+		int16_t const advance_x =
+			new_x + glyphdata->advance_x_px;
 
-		uint16_t const
-		  left  = glyph_x_offset_px,
-		  right = right_px,
-		  down  = glyph_y_offset_px,
-		  up    = up_px,
-		  layer = 32,
-		  tex_left  = glyphdata->tex_left,
-		  tex_right = glyphdata->tex_right,
-		  tex_up    = glyphdata->tex_bottom,
-		  tex_down  = glyphdata->tex_top;
+		struct myy_gl_text_quad text_quad = {
+			.left      = glyph_x_offset_px,
+			.right     = right_px,
+			.down      = glyph_y_offset_px,
+			.up        = up_px,
+			.tex_left  = glyphdata->tex_left,
+			.tex_right = glyphdata->tex_right,
+			.tex_up    = glyphdata->tex_bottom, // TODO : Fix this in the texture !!
+			.tex_down  = glyphdata->tex_top
+		};
+		myy_vector_quads_add(quads, 1, &text_quad);
 
-		US_two_tris_quad_3D_store(
-			quad, left, right, up, down, layer,
-			tex_left, tex_right, tex_up, tex_down
-		);
-		
-		text_pos.x = advance_x;
+		new_x = advance_x;
 	}
 	
-	*offset = text_pos;
-	
-	return;
+	return new_x;
 }
 
-int16_t myy_glyph_to_qinfos
-(struct gl_text_infos const * __restrict const gl_text_infos,
- uint32_t const codepoint,
- struct qinfos * __restrict const quad,
- int16_t x_offset_px)
+/* Only deal with left-to-right, top-to-bottom right now */
+/* TODO Cache the newline size somewhere. It's not going to change.
+ */
+static inline void position_to_new_line(
+	position_S * __restrict const current_draw_position,
+	position_S const initial_position,
+	int16_t const newline_size,
+	struct myy_text_properties const * __restrict const current_metadata)
 {
-	uint32_t const * __restrict const codepoints =
-	  gl_text_infos->codepoints_addr;
-
-	unsigned int codepoint_index =
-	  find_codepoint_in(codepoints, codepoint);
-	if (codepoint_index) {
-		struct myy_packed_fonts_glyphdata const * __restrict const glyphdata =
-		  gl_text_infos->glyphdata_addr+codepoint_index;
-
-		quad->quad_w       = glyphdata->width_px;
-		quad->quad_h       = glyphdata->height_px;
-		quad->q_off_x      = glyphdata->offset_x_px + x_offset_px;
-		uint16_t advance_x = x_offset_px + glyphdata->advance_x_px;
-		quad->q_off_y      = glyphdata->offset_y_px;
-		quad->tex_off_x    = glyphdata->tex_left;
-		quad->tex_w        = glyphdata->tex_right - glyphdata->tex_left;
-		quad->tex_off_y    = glyphdata->tex_bottom;
-		quad->tex_h        = glyphdata->tex_top - glyphdata->tex_bottom;
-
-		return advance_x;
-	}
-	return x_offset_px;
+	/* myy_text_flows is supposed to be :
+	 * (binary representation)
+	 * [00000000|00000000| 00000000 |00000000]
+	 *   unused   unused  block_flow text_flow
+	 * 
+	 * uint32_t text_flow = current_metadata->myy_text_flows;
+	 */
+	current_draw_position->x  = initial_position.x;
+	current_draw_position->y += newline_size;
 }
 
-void myy_codepoints_to_glyph_qinfos
-(struct gl_text_infos const * __restrict const gl_text_infos,
- uint32_t const * __restrict const string,
- unsigned int const n_characters,
- struct qinfos * __restrict const quads)
+void myy_string_to_quads(
+	struct gl_text_infos const * __restrict const gl_text_infos,
+	uint8_t const * __restrict utf8_string,
+	position_S * __restrict const draw_at_px,
+	struct myy_text_properties const * __restrict const current_metadata,
+	void (*deal_with_generated_quads)(
+		void * __restrict user_arg,
+		struct myy_gl_text_quad const * __restrict const quads,
+		uint32_t n_quads,
+		struct myy_text_properties const * __restrict const metadata),
+	void * deal_with_generated_quads_user_arg)
 {
-	int16_t x_offset = 0;
-	for (unsigned int i = 0; i < n_characters; i++)
-		x_offset = myy_glyph_to_qinfos(
-		  gl_text_infos, string[i], quads+i, x_offset
-		);
-}
+	position_S const start_pos_px = *draw_at_px;
+	position_S current_pos_px = *draw_at_px;
 
-void myy_codepoints_to_glyph_twotris_quads
-(struct gl_text_infos const * __restrict const gl_text_infos,
- uint32_t const * __restrict const string,
- unsigned int const n_characters,
- US_two_tris_quad_3D * __restrict const quads) {
-
-	int16_t x_offset = 0;
-	for (unsigned int i = 0; i < n_characters; i++)
-		x_offset = myy_glyph_to_twotris_quad(
-		  gl_text_infos, string[i], quads+i, x_offset
-		);
-
-}
-
-void myy_codepoints_to_glyph_twotris_quads_window_coords
-(struct gl_text_infos const * __restrict const gl_text_infos,
- uint32_t const * __restrict const string,
- unsigned int const n_characters,
- US_two_tris_quad_3D * __restrict const quads) {
-
-	position_S offsets = position_S_struct(0,0);
-	for (unsigned int i = 0; i < n_characters; i++)
-		myy_glyph_to_twotris_quad_window_coords(
-		  gl_text_infos, string[i], quads+i, &offsets
-		);
-
-}
-
-struct generated_quads myy_single_string_to_quads
-(struct gl_text_infos const * __restrict const gl_text_infos,
- uint8_t const * __restrict string,
- buffer_t quads_buffer_address,
- position_S * __restrict const text_offset) 
-{
-	US_two_tris_quad_3D * __restrict const quads_buffer =
-		(US_two_tris_quad_3D *) quads_buffer_address;
-	
-	uint16_t stored_quads = 0;
-	while (*string) {
+	/* TODO : Store a header that specifies the newline offsets
+	 * when displaying top-to-bottom, left-to-right.
+	 * Inverse the value if drawing in the other direction
+	 */
+	struct myy_packed_fonts_glyphdata const * __restrict const glyphdata =
+		  gl_text_infos->glyphdata_addr;
+	int16_t new_line_size = -glyphdata->advance_y_px;
+	while (*utf8_string) {
 		struct utf8_codepoint const utf8_codepoint = 
-			utf8_codepoint_and_size(string);
-		string += utf8_codepoint.size;
-		myy_glyph_to_twotris_quad_window_coords(
-			gl_text_infos, utf8_codepoint.raw, quads_buffer+stored_quads,
-			text_offset
-		);
-		stored_quads++;
-	}
-	
-	struct generated_quads generated_quads = {
-		.count = stored_quads,
-		.size  = (uint16_t) (stored_quads * sizeof(US_two_tris_quad_3D))
-	};
-	return generated_quads;
-}
+			utf8_codepoint_and_size(utf8_string);
+		utf8_string += utf8_codepoint.size;
 
-struct generated_quads myy_strings_to_quads_va
-(struct gl_text_infos const * __restrict const gl_text_infos,
- unsigned int const n_strings,
- uint8_t const * const * __restrict const strings,
- buffer_t buffer, int16_t const vertical_offset_px,
- position_S * __restrict const text_position_px)
-{
-	US_two_tris_quad_3D * __restrict const quads_buffer =
-		(US_two_tris_quad_3D *) buffer;
-
-	uint16_t stored_quads = 0;
-	position_S offset = *text_position_px;
-	for (unsigned int s = 0; s < n_strings; s++) {
-		offset.x = text_position_px->x; // line start
-		uint8_t const * string = strings[s];
-
-		/* Generate the quads representing the current string characters */
-		while(*string) {
-			
-			struct utf8_codepoint const utf8_codepoint = 
-				utf8_codepoint_and_size(string);
-
-			string += utf8_codepoint.size;
-
-			myy_glyph_to_twotris_quad_window_coords(
-				gl_text_infos, utf8_codepoint.raw,
-				quads_buffer+stored_quads, &offset
-			);
-
-			stored_quads += 1;
-
+		if (utf8_codepoint.raw != 0xA) {
+			current_pos_px.x = myy_glyph_to_quad_window_coords(
+				gl_text_infos, utf8_codepoint.raw, current_pos_px);
 		}
-		
-		// Offset the next line
-		offset.y += vertical_offset_px; // next line
+		else {
+			/* TODO That only works with :
+			* - Left to Right, Down to Bottom writings */
+			position_to_new_line(
+				&current_pos_px, start_pos_px, new_line_size, current_metadata);
+		}
 	}
-	
-	struct generated_quads generated_quads = {
-		.count = stored_quads,
-		.size = stored_quads * sizeof(US_two_tris_quad_3D)
-	};
 
-	return generated_quads;
+	myy_vector_quads * __restrict const quads = gl_text_infos->quads;
+	deal_with_generated_quads(
+		deal_with_generated_quads_user_arg,
+		myy_vector_quads_data(quads),
+		myy_vector_quads_length(quads),
+		current_metadata);
 }
+
 

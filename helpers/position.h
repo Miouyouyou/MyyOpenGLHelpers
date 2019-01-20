@@ -3,30 +3,35 @@
 
 #include <stdint.h>
 
-struct myy_S_position  {  int16_t x, y; };
-struct myy_uS_position { uint16_t x, y; };
-struct myy_I_position  {  int32_t x, y; };
+struct myy_S_position    {  int16_t x, y; };
+struct myy_uS_position   { uint16_t x, y; };
+struct myy_I_position    {  int32_t x, y; };
+struct myy_S_position_3D {  int16_t x, y, z; };
 
 typedef struct myy_S_position  position_S;
 typedef struct myy_uS_position position_uS;
 typedef struct myy_I_position  position_I;
-
-#include <myy/helpers/hitbox_action.h>
+typedef struct myy_S_position_3D position_S_3D;
 
 static inline position_S position_S_struct
-(uint16_t x, uint16_t y)
+(int16_t x, int16_t y)
 {
 	position_S position = { .x = x, .y = y };
 	return position;
 }
+
+static inline position_S_3D position_S_3D_struct(
+	int16_t const x, int16_t const y, int16_t const z)
+{
+	position_S_3D position = { .x = x, .y = y };
+	return position;
+}
+
 static inline void position_S_set
 (position_S * __restrict const position,  int16_t x, int16_t y)
-{ position->x = x; position->y = y; }
-
-static inline position_S position_S_box_coords_S_top_left
-(struct box_coords_S box_coords)
-{
-	return position_S_struct(box_coords.left, box_coords.top);
+{ 
+	position->x = x;
+	position->y = y;
 }
 
 static inline position_S position_S_relative_to_window_coords

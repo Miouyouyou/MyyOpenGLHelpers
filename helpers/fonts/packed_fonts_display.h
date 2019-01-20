@@ -2,64 +2,52 @@
 #define MYY_SRC_FONTS_PACKED_FONTS_DISPLAY_H 1
 
 #include <stdint.h>
-#include <myy/helpers/opengl/quads_structures.h>
 #include <myy/helpers/fonts/packed_fonts_parser.h>
 #include <myy/helpers/position.h>
 #include <myy/helpers/buffers.h>
 
-struct qinfos {
-	int16_t quad_w, quad_h, q_off_x, q_off_y;
-	int16_t tex_w, tex_h, tex_off_x, tex_off_y;
+enum myy_text_line_flow {
+	line_left_to_right,
+	line_right_to_left,
+	line_top_to_bottom,
+	line_bottom_to_top
 };
 
-int16_t myy_glyph_to_twotris_quad(
-	struct gl_text_infos const * __restrict const glyph_infos,
+enum myy_text_block_flow {
+	block_top_to_bottom,
+	block_left_to_right,
+	block_right_to_left,
+	block_bottom_to_top
+};
+
+struct myy_text_properties {
+	int32_t myy_text_flows;
+	int32_t z_layer;
+	uint8_t r,g,b,a;
+	void * user_metadata;
+};
+
+/* WARNING Currently broken */
+int16_t myy_glyph_to_twotris_quad_window_coords(
+	struct gl_text_infos const * __restrict const gl_text_infos,
 	uint32_t const codepoint,
-	US_two_tris_quad_3D * __restrict const quad,
-	int16_t x_offset_px);
+	position_S const text_pos);
 
-void myy_glyph_to_twotris_quad_window_coords(
-	struct gl_text_infos const * __restrict const glyph_infos,
+int16_t myy_glyph_to_quad_window_coords(
+	struct gl_text_infos const * __restrict const gl_text_infos,
 	uint32_t const codepoint,
-	US_two_tris_quad_3D * __restrict const quad,
-	position_S * __restrict const offset);
+	position_S const text_pos);
 
-void myy_codepoints_to_glyph_twotris_quads(
-	struct gl_text_infos const * __restrict const glyph_infos,
-	uint32_t const * __restrict const string,
-	unsigned int const n_characters,
-	US_two_tris_quad_3D * __restrict const quads);
-
-void myy_codepoints_to_glyph_twotris_quads_window_coords(
-	struct gl_text_infos const * __restrict const glyph_infos,
-	uint32_t const * __restrict const string,
-	unsigned int const n_characters,
-	US_two_tris_quad_3D * __restrict const quads);
-
-void myy_codepoints_to_glyph_qinfos(
-	struct gl_text_infos const * __restrict const glyph_infos,
-	uint32_t const * __restrict const string,
-	unsigned int const n_characters,
-	struct qinfos * __restrict const quads);
-
-int16_t myy_glyph_to_qinfos(
-	struct gl_text_infos const * __restrict const glyph_infos,
-	uint32_t const codepoint,
-	struct qinfos * __restrict const quad,
-	int16_t x_offset_px);
-
-struct generated_quads myy_strings_to_quads_va(
-	struct gl_text_infos const * __restrict const glyph_infos,
-	unsigned int const n_strings,
-	uint8_t const * const * __restrict const strings,
-	buffer_t buffer,
-	int16_t const vertical_offset_px,
-	position_S * __restrict const text_position_px);
-
-struct generated_quads myy_single_string_to_quads(
-	struct gl_text_infos const * __restrict const glyph_infos,
-	uint8_t const * __restrict string,
-	buffer_t quads_buffer,
-	position_S * __restrict const text_offset);
+void myy_string_to_quads(
+	struct gl_text_infos const * __restrict const gl_text_infos,
+	uint8_t const * __restrict utf8_string,
+	position_S * __restrict const draw_at_px,
+	struct myy_text_properties const * __restrict const current_metadata,
+	void (*deal_with_generated_quads)(
+		void * __restrict user_arg,
+		struct myy_gl_text_quad const * __restrict const quads,
+		uint32_t n_quads,
+		struct myy_text_properties const * __restrict const metadata),
+	void * deal_with_generated_quads_user_arg);
 
 #endif
