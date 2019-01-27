@@ -35,6 +35,12 @@ static inline size_t myy_vector_allocated_used(
 	return (size_t) (vector->tail - vector->begin);
 }
 
+static inline void myy_vector_reset(
+	struct myy_vector * __restrict const vector)
+{
+	vector->tail = vector->begin;
+}
+
 static inline bool myy_vector_expand_to_store_at_least(
 	struct myy_vector * const vector,
 	size_t const n_octets)
@@ -280,6 +286,13 @@ static inline void myy_vector_inspect(
 	static inline size_t myy_vector_##suffix##_type_size()                     \
 	{                                                                          \
 		return sizeof(T);                                                      \
+	}                                                                          \
+	                                                                           \
+	__attribute__((unused))                                                    \
+	static inline void myy_vector_##suffix##_reset(                            \
+		myy_vector_##suffix * __restrict const vector)                         \
+	{                                                                          \
+		return myy_vector_reset((struct myy_vector *) vector);      \
 	}                                                                          \
 
 #endif

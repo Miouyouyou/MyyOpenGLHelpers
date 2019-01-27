@@ -50,4 +50,17 @@ void myy_string_to_quads(
 		struct myy_text_properties const * __restrict const metadata),
 	void * deal_with_generated_quads_user_arg);
 
+void myy_strings_list_to_quads(
+	struct gl_text_infos const * __restrict const gl_text_infos,
+	uint8_t const * __restrict const * __restrict utf8_strings,
+	position_S * __restrict const draw_at_px,
+	struct myy_text_properties const * __restrict const current_metadata,
+	void (*deal_with_generated_quads)(
+		void * __restrict user_arg,
+		struct myy_gl_text_quad const * __restrict const quads,
+		uint32_t n_quads,
+		struct myy_text_properties const * __restrict const metadata),
+	void * deal_with_generated_quads_user_arg,
+	int64_t const vertical_offset_between_strings);
+
 #endif

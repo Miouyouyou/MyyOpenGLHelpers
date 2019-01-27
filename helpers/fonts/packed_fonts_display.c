@@ -194,6 +194,8 @@ void myy_string_to_quads(
 	 */
 	struct myy_packed_fonts_glyphdata const * __restrict const glyphdata =
 		  gl_text_infos->glyphdata_addr;
+	myy_vector_quads_reset(gl_text_infos->quads);
+
 	int16_t new_line_size = -glyphdata->advance_y_px;
 	while (*utf8_string) {
 		struct utf8_codepoint const utf8_codepoint = 
@@ -220,4 +222,34 @@ void myy_string_to_quads(
 		current_metadata);
 }
 
+void myy_strings_list_to_quads(
+	struct gl_text_infos const * __restrict const gl_text_infos,
+	uint8_t const * __restrict const * __restrict utf8_strings,
+	position_S * __restrict const draw_at_px,
+	struct myy_text_properties const * __restrict const current_metadata,
+	void (*deal_with_generated_quads)(
+		void * __restrict user_arg,
+		struct myy_gl_text_quad const * __restrict const quads,
+		uint32_t n_quads,
+		struct myy_text_properties const * __restrict const metadata),
+	void * deal_with_generated_quads_user_arg,
+	int64_t const vertical_offset_between_strings)
+{
 
+	int16_t line_start = draw_at_px->x;
+	for (
+		uint8_t const * __restrict current_utf8_string = *utf8_strings++;
+		current_utf8_string != NULL;
+		current_utf8_string = *utf8_strings++)
+	{
+		myy_string_to_quads(
+			gl_text_infos,
+			current_utf8_string,
+			draw_at_px,
+			current_metadata,
+			deal_with_generated_quads,
+			deal_with_generated_quads_user_arg);
+		draw_at_px->x  = line_start;
+		draw_at_px->y += vertical_offset_between_strings;
+	}
+}
