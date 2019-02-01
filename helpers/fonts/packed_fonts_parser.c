@@ -190,7 +190,7 @@ bool myy_packed_fonts_load(
 		load_texture_and_get_metadata(header, infos, sample_props);
 
 out:
-	print_stored_codepoints_infos(infos);
+	//print_stored_codepoints_infos(infos);
 	return everything_went_fine;
 }
 

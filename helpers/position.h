@@ -7,11 +7,13 @@ struct myy_S_position    {  int16_t x, y; };
 struct myy_uS_position   { uint16_t x, y; };
 struct myy_I_position    {  int32_t x, y; };
 struct myy_S_position_3D {  int16_t x, y, z; };
+struct myy_S_position_4D {  int16_t x, y, z, w; };
 
 typedef struct myy_S_position  position_S;
 typedef struct myy_uS_position position_uS;
 typedef struct myy_I_position  position_I;
 typedef struct myy_S_position_3D position_S_3D;
+typedef struct myy_S_position_4D position_S_4D;
 
 static inline position_S position_S_struct
 (int16_t x, int16_t y)
@@ -59,5 +61,18 @@ static inline void position_uS_set
 static inline void position_I_set
 (position_I * __restrict const position,  int32_t x, int32_t y)
 { position->x = x; position->y = y; }
+
+#define POSITION_4D_SIMPLE(x, y, z) {x,y,z,1}
+
+__attribute__((unused))
+static inline position_S position_S_2D_from_4D(position_S_4D pos)
+{
+	position_S pos_2D = {
+		.x = pos.x,
+		.y = pos.y
+	};
+
+	return pos_2D;
+}
 
 #endif
