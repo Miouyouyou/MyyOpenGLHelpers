@@ -75,4 +75,16 @@ static inline position_S position_S_2D_from_4D(position_S_4D pos)
 	return pos_2D;
 }
 
+__attribute__((unused))
+static inline position_S_4D position_S_4D_struct(
+	int16_t const x,
+	int16_t const y,
+	int16_t const z,
+	int16_t const w)
+{
+	position_S_4D pos_4D = { .x = x, .y = y, .z = z, .w = w };
+	return pos_4D;
+}
+
+
 #endif
