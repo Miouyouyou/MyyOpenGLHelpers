@@ -52,19 +52,16 @@ struct _escontext
 	xcb_connection_t * connection;
 };
 
-xcb_window_t CreateNativeWindow
-(char const * __restrict const title,
- int const width, int const height,
+int CreateNativeWindow
+(struct myy_window_parameters const * __restrict const window_params,
  struct _escontext * __restrict const global_data);
 
 EGLBoolean CreateEGLContext
-(char const * __restrict const title,
- int const width, int const height,
+(struct myy_window_parameters const * __restrict const window_params,
  struct _escontext * __restrict const global_data);
 
 EGLBoolean CreateWindowWithEGLContext
-(const char * __restrict const title,
- const int width, const int height,
+(struct myy_window_parameters const * __restrict const window_params,
  struct _escontext * __restrict const global_data);
 
 void ParseEvents

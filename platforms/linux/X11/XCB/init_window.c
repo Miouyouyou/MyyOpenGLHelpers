@@ -1,5 +1,5 @@
 /*
-  Copyright (c) 2016 Miouyouyou <Myy>
+  Copyright (c) 2019 Miouyouyou <Myy>
 
   Permission is hereby granted, free of charge, to any person obtaining
   a copy of this software and associated documentation files 
@@ -69,11 +69,20 @@ static char const * const myy_eglerrors[myy_eglstatus_n] = {
 #define FALSE 0
 
 #include <stdlib.h>
-xcb_window_t CreateNativeWindow
-(char const * __restrict const title,
- int const width, int const height,
+int CreateNativeWindow
+(struct myy_window_parameters const * __restrict const window_params,
  struct _escontext * __restrict const global_data)
 {
+	int ret = 0;
+	int const width = window_params->width;
+	int const height = window_params->height;
+	/* Subject to various security flaws :
+	 * 1. There's no guarantee that the string is NULL terminated.
+	 * 2. There's no way to guarantee this NULL termination.
+	 * TODO Use a specify string structure that guarantees these two
+	 * things.
+	 */
+	char const * __restrict const title = window_params->title;
 	Display * display = XOpenDisplay(NULL);
 	xcb_connection_t * const connection = xcb_connect(NULL, NULL);
 	xcb_screen_t * const screen =
@@ -108,6 +117,16 @@ xcb_window_t CreateNativeWindow
 		screen->root_visual,
 		mask, values
 	);
+	xcb_void_cookie_t map_cookie;
+	xcb_generic_error_t * error =
+		xcb_request_check(connection, create_cookie);
+
+	if (error) {
+		LOG("xcb_create_window failed : Could not create a window !?\n");
+		ret = -ENOSYS;
+		goto error;
+	}
+
 	xcb_change_property(
 		connection,
 		XCB_PROP_MODE_REPLACE,
@@ -118,14 +137,15 @@ xcb_window_t CreateNativeWindow
 		strlen (title),
 		title
 	);
-	xcb_void_cookie_t map_cookie = 
-		xcb_map_window_checked(connection, window);
+	map_cookie = xcb_map_window_checked(connection, window);
 
-	xcb_generic_error_t * error =
-		xcb_request_check(connection, create_cookie);
-	if (error) LOG("Could not create a window !?\n");
 	error = xcb_request_check(connection, map_cookie);
-	if (error) LOG("Could not map a window !?\n");
+	if (error) {
+		LOG("xcb_map_window failed : Could not map the window !?\n");
+		/* FIXME What about the window we just created ? */
+		ret = -ENOSYS;
+		goto error;
+	}
 	
 	xcb_flush(connection);
 
@@ -169,13 +189,15 @@ xcb_window_t CreateNativeWindow
 	global_data->window_height  = height;
 	global_data->native_window  = window;
 	global_data->connection     = connection;
-	
-	return window;
+
+	return ret;
+
+error:
+	return ret;
 }
 
 EGLBoolean CreateEGLContext
-(char const * __restrict const title,
- int const width, int const height,
+(struct myy_window_parameters const * __restrict const parameters,
  struct _escontext * __restrict const global_data)
 {
 	enum myy_eglstatus current_status = myy_eglstatus_no_problem;
@@ -186,7 +208,6 @@ EGLBoolean CreateEGLContext
 	EGLContext context;
 	EGLSurface surface;
 	EGLConfig config;
-	EGLint eglConfAttrVisualID;
 	EGLint eglAttribs[] =  {
 		MYY_EGL_COMMON_PC_ATTRIBS,
 		EGL_NONE, EGL_NONE
@@ -196,10 +217,40 @@ EGLBoolean CreateEGLContext
 	EGLint contextAttribs[] =
 		{ MYY_CURRENT_GL_CONTEXT, EGL_NONE, EGL_NONE };
 
-	xcb_window_t native_window =
-		CreateNativeWindow(title, width, height, global_data);
-	EGLDisplay display = 
-		eglGetDisplay( global_data->native_display );
+	char const * __restrict const supported_extensions =
+        eglQueryString(EGL_NO_DISPLAY, EGL_EXTENSIONS);
+	EGLDisplay display = EGL_NO_DISPLAY;
+
+	/* Let's use eglGetPlatformDisplay if possible */
+	if (supported_extensions
+		&& strstr(supported_extensions, "EGL_EXT_platform_base"))
+	{
+		LOG("Trying to use eglGetPlatformDisplayEXT()\n");
+
+		/* Got to love these short macro names */
+		PFNEGLGETPLATFORMDISPLAYEXTPROC get_platform_display =
+			(PFNEGLGETPLATFORMDISPLAYEXTPROC)
+			eglGetProcAddress("eglGetPlatformDisplayEXT");
+
+		if( get_platform_display != NULL ) {
+			display = get_platform_display(
+				EGL_PLATFORM_X11_KHR,
+				global_data->native_display,
+				NULL);
+			if (display != EGL_NO_DISPLAY)
+				LOG("Success !\n");
+			else
+				LOG("Failed with error %04x\n", eglGetError());
+		}
+		else
+			LOG("No eglGetPlatformDisplay extension... Seriously ?\n");
+	}
+
+	if (display == EGL_NO_DISPLAY) {
+		LOG("Using the old eglGetDisplay call.\n");
+		display = eglGetDisplay( global_data->native_display );
+	}
+
 	if ( display == EGL_NO_DISPLAY ) {
 		current_status = myy_eglstatus_eglGetDisplay;
 		goto print_current_egl_status_and_return;
@@ -212,16 +263,18 @@ EGLBoolean CreateEGLContext
 	}
 
 	// Get configs
-	if (   (eglGetConfigs(display, NULL, 0, &numConfigs) != EGL_TRUE)
-			|| (numConfigs == 0)) {
+	if ((eglGetConfigs(display, NULL, 0, &numConfigs) != EGL_TRUE)
+	    || (numConfigs == 0))
+	{
 		current_status = myy_eglstatus_eglGetConfigs;
 		goto print_current_egl_status_and_return;
 	}
 
 	// Choose config
-	if ( (eglChooseConfig(display, eglAttribs, &config, 1, &numConfigs)
-		  != EGL_TRUE)
-			|| (numConfigs != 1)) {
+	if ((eglChooseConfig(display, eglAttribs, &config, 1, &numConfigs)
+	    != EGL_TRUE)
+	    || (numConfigs != 1))
+	{
 		current_status = myy_eglstatus_eglChooseConfig;
 		goto print_current_egl_status_and_return;
 	}
@@ -243,8 +296,8 @@ EGLBoolean CreateEGLContext
 	
 
 	// Create a surface
-	surface = eglCreatePlatformWindowSurface(
-		display, config, &native_window, NULL
+	surface = eglCreateWindowSurface(
+		display, config, global_data->native_window, NULL
 	);
 
 	if ( surface == EGL_NO_SURFACE ) {
@@ -278,11 +331,14 @@ void RefreshWindow
 }
 
 EGLBoolean CreateWindowWithEGLContext
-(const char * __restrict const title,
- const int width, const int height,
+(struct myy_window_parameters const * __restrict const window_params,
  struct _escontext * __restrict const global_data)
 {
-	return CreateEGLContext(title, width, height, global_data);
+	int ret = CreateNativeWindow(window_params, global_data);
+	if (ret) {
+		return EGL_FALSE;
+	}
+	return CreateEGLContext(window_params, global_data);
 }
 
 

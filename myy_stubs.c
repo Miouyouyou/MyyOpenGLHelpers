@@ -17,7 +17,13 @@ void weak_function myy_user_quit() {
 	platform.stop(platform.stop_data);
 }
 
-void weak_function myy_init() {};
+int weak_function myy_init(
+	int argc,
+	char **argv,
+	struct myy_window_parameters * __restrict const parameters)
+{
+	return 0;
+};
 
 void weak_function myy_display_initialised(
 	unsigned int const width,
@@ -66,10 +72,13 @@ void weak_function myy_move(int x, int y, int start_x, int start_y)
 
 void weak_function myy_hover(int x, int y) {}
 
-void weak_function myy_key(unsigned int keycode)
+void weak_function myy_key(unsigned int keycode) {}
+
+void weak_function myy_key_release(unsigned int keycode) {}
+
+void weak_function myy_text(
+	char const * __restrict const text,
+	size_t const text_size)
 {
+	
 }
-
-void weak_function myy_key_release(unsigned int keycode)
-{}
-

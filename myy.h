@@ -44,9 +44,18 @@ struct myy_platform_handlers {
 	void * stop_data;
 };
 
+struct myy_window_parameters {
+	char const * __restrict title;
+	uintreg_t width;
+	uintreg_t height;
+};
+
 struct myy_platform_handlers * myy_get_platform_handlers();
 void myy_display_initialised(unsigned int width, unsigned int height);
-void myy_init();
+int myy_init(
+	int argc,
+	char **argv,
+	struct myy_window_parameters * __restrict const parameters);
 void myy_init_drawing();
 void myy_draw();
 void myy_cleanup_drawing();
@@ -65,6 +74,9 @@ void myy_hover(int x, int y);
 void myy_move(int x, int y, int start_x, int start_y);
 void myy_key(unsigned int keycode);
 void myy_key_release(unsigned int keycode);
+void myy_text(
+	char const * __restrict const text,
+	size_t const text_size);
 void myy_after_draw();
 
 /* Temporary changes */

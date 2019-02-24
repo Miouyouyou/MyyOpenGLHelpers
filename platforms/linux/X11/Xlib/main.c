@@ -32,16 +32,36 @@ static void stop(unsigned int * running) {
 	*running = 0;
 }
 
-int main() {
+int main(int argc, char **argv) {
 
 	struct _escontext global_context;
+	struct myy_window_parameters window_params = {0};
+	struct myy_xlib_state implementation_details = {0};
+
+	int ret = myy_init(argc, argv, &window_params);
+	if (ret)
+		exit(ret);
+
+	LOG("Using XLIB\n");
+	window_params.title =
+		(window_params.title != NULL)
+		? window_params.title : "Myy Window";
+	window_params.width =
+		(window_params.width != 0)
+		? window_params.width : 1280;
+	window_params.height =
+		(window_params.height != 0)
+		? window_params.height : 720;
+
 	uint8_t context_created = CreateWindowWithEGLContext(
-		"Myy Window", 1280, 720, &global_context
-	);
+		&window_params, &global_context, &implementation_details);
 	if (!context_created) exit(1);
+
 	myy_generate_new_state();
 	myy_init_drawing();
-	myy_display_initialised(1280, 720);
+	myy_display_initialised(
+		global_context.window_width,
+		global_context.window_height);
 
 	unsigned int running = 1;
 
@@ -51,8 +71,12 @@ int main() {
 	handlers->stop = stop;
 	handlers->stop_data = &running;
 
+	struct myy_input_state input_state = {0,{0}};
 	while(running) {
-		ParseEvents(global_context.connection);
+		ParseEvents(
+			global_context.native_display,
+			&input_state,
+			&implementation_details);
 		myy_draw();
 		myy_after_draw();
 		RefreshWindow(
@@ -64,7 +88,8 @@ int main() {
 	myy_cleanup_drawing();
 	Terminate(
 		global_context.native_display,
-		global_context.native_window
+		global_context.native_window,
+		&implementation_details
 	);
 
 }

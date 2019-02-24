@@ -55,8 +55,8 @@ if (MYY_X11 OR MYY_DRM)
 	if (MYY_X11)
 
 		set(MyyX11Sources
-		    myy/platforms/linux/X11/init_window.c
-		    myy/platforms/linux/X11/main.c)
+		    myy/platforms/linux/X11/Xlib/init_window.c
+		    myy/platforms/linux/X11/Xlib/main.c)
 
 		add_executable(Program_X11
 		              ${MyyMainHooks}
