@@ -74,14 +74,54 @@ int CreateNativeWindow(
 	void * implementation_details)
 {
 	Window root;
-	XSetWindowAttributes swa;
-	XSetWindowAttributes xattr;
 	Atom wm_state;
-	XWMHints hints;
 	XEvent xev;
 	Window win;
+
+	/* You'd think that these two calls, done with an empty string,
+	 * would just generate a "reset to the default status" or
+	 * overwrite some status with nothing.
+	 * 
+	 * Turns out that it's not the case.
+	 * If you launch setLocale(LC_ALL, "") it just setup LC_ALL
+	 * locale category to the one defined in the environment variable.
+	 * Also, for XSetLocaleModifiers(3) :
+	 * 
+	 *   The local host X locale modifiers announcer
+	 *   (on POSIX-compliant systems, the XMODIFIERS environment variable)
+	 *   is appended to the modifier_list to provide default values on the
+	 *   local host. 
+	 * 
+	 * ...
+	 * 
+	 * OBVIOUSLY ! Yeah !
+	 * 
+	 * So basically, these two calls use environment variables to
+	 * setup the environment...
+	 * Because, yes, environment variables are not used automatically.
+	 * 
+	 * It's things like this that make you realize that a lot of things
+	 * you thought automatic... are not...
+	 * 
+	 * So basically, if I don't call setlocale(LC_ALL, ""), then if you
+	 * launch the software with, say, LC_ALL = ja_JP.utf8 , it will be
+	 * ignored and, even if the IME triggers, you'll probably not be
+	 * able to convert the input characters because the converting
+	 * functions won't be set on the XIM layer...
+	 * 
+	 * And if I don't call XSetLocaleModifiers("") , then if you
+	 * launch the software with, say, XMODIFIERS=@im=fcitx then it will
+	 * be ignored too, and you won't get any IME support from FCITX,
+	 * because no connection will be done from the XIM client, which is
+	 * our application and the XIM server, which is FCITX in this case.
+	 * So instead, you'll just see FCITX says that no input window is
+	 * currently focused when focusing this application.
+	 * 
+	 * Seriously...
+	 */
 	setlocale(LC_ALL, "");
 	XSetLocaleModifiers("");
+	
 	Display* x_display = XOpenDisplay(NULL);
 	int const width  = window_params->width;
 	int const height = window_params->height;
@@ -165,7 +205,6 @@ int CreateNativeWindow(
 			XSetICFocus(xic);
 		}
 	}
-	LOG("Went there, done that\n");
 	xlib_state->xic = xic;
 	xlib_state->xim = xim;
 	xlib_state->compose_buffer =
@@ -176,8 +215,6 @@ int CreateNativeWindow(
 		if (xim != NULL) XCloseIM(xim);
 		return 1;
 	}
-
-	LOG("Window : %ld\n", win);
 
 	memset(xlib_state->compose_buffer, 0, 4096);
 	/* Without this, the window would not be visible
