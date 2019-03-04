@@ -222,6 +222,59 @@ void myy_string_to_quads(
 		current_metadata);
 }
 
+void myy_gl_text_infos_chars_to_quads(
+	struct gl_text_infos const * __restrict const gl_text_infos,
+	uint8_t const * __restrict utf8_string,
+	size_t const utf8_string_size,
+	position_S * __restrict const draw_at_px,
+	struct myy_text_properties const * __restrict const current_metadata,
+	void (*deal_with_generated_quads)(
+		void * __restrict user_arg,
+		struct myy_gl_text_quad const * __restrict const quads,
+		uint32_t n_quads,
+		struct myy_text_properties const * __restrict const metadata),
+	void * deal_with_generated_quads_user_arg)
+{
+	position_S const start_pos_px = *draw_at_px;
+	position_S current_pos_px = *draw_at_px;
+
+	/* TODO : Store a header that specifies the newline offsets
+	 * when displaying top-to-bottom, left-to-right.
+	 * Inverse the value if drawing in the other direction
+	 */
+	struct myy_packed_fonts_glyphdata const * __restrict const glyphdata =
+		  gl_text_infos->glyphdata_addr;
+	myy_vector_quads_reset(gl_text_infos->quads);
+
+	int16_t new_line_size = -glyphdata->advance_y_px;
+	uint8_t const * __restrict const utf8_string_end =
+		utf8_string + utf8_string_size;
+
+	while (utf8_string < utf8_string_end) {
+		struct utf8_codepoint const utf8_codepoint = 
+			utf8_codepoint_and_size(utf8_string);
+		utf8_string += utf8_codepoint.size;
+
+		if (utf8_codepoint.raw != 0xA) {
+			current_pos_px.x = myy_glyph_to_quad_window_coords(
+				gl_text_infos, utf8_codepoint.raw, current_pos_px);
+		}
+		else {
+			/* TODO That only works with :
+			* - Left to Right, Down to Bottom writings */
+			position_to_new_line(
+				&current_pos_px, start_pos_px, new_line_size, current_metadata);
+		}
+	}
+
+	myy_vector_quads * __restrict const quads = gl_text_infos->quads;
+	deal_with_generated_quads(
+		deal_with_generated_quads_user_arg,
+		myy_vector_quads_data(quads),
+		myy_vector_quads_length(quads),
+		current_metadata);
+}
+
 void myy_strings_list_to_quads(
 	struct gl_text_infos const * __restrict const gl_text_infos,
 	uint8_t const * __restrict const * __restrict utf8_strings,
