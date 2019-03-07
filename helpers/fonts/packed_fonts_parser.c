@@ -73,14 +73,9 @@ static bool load_texture_and_get_metadata(
 	struct myy_fh_map_handle texture_mapping;
 	struct myy_raw_texture_header const * __restrict texture_header;
 
-	if (getcwd(current_pwd, 510) == NULL) {
-		LOG("Couldn't get the current working dir path\n");
-		goto didnt_change_directory;
-	}
+	texture_mapping = myy_asset_map_to_memory(
+		texture_filename, myy_asset_type_texture);
 
-	chdir("textures");
-
-	texture_mapping = fh_MapFileToMemory(texture_filename);
 	if (!texture_mapping.ok) {
 		LOG("Couldn't load texture %s\n", texture_filename);
 		goto out;

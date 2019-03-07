@@ -28,6 +28,7 @@
 #if defined(__ANDROID__)
 
 #include <android/log.h>
+#include <string.h>
 #define LOG(...) ((void)__android_log_print(ANDROID_LOG_WARN, "native-insanity", __VA_ARGS__))
 #define LOG_ERRNO(...) ((void)__android_log_print(ANDROID_LOG_ERROR, "native-insanity", "Error : %s\n", strerror(errno))); ((void)__android_log_print(ANDROID_LOG_ERROR, "native-insanity", __VA_ARGS__)
 

@@ -150,3 +150,45 @@ void fh_UnmapFileFromMemory
 (struct myy_fh_map_handle const handle) {
 	if (handle.ok) munmap(handle.address, handle.length);
 }
+
+/* TODO Factorize with the android version if needed */
+struct myy_fh_map_handle myy_asset_map_to_memory(
+	char const * __restrict const rel_filepath,
+	enum myy_asset_type const type)
+{
+	char complete_filepath[256] = {0};
+
+	struct myy_fh_map_handle handle = {
+		.ok = 0,
+		.address = NULL,
+		.length = 0
+	};
+
+	switch(type) {
+		case myy_asset_type_texture:
+		{
+			/* We don't care about the trailing \0 of the prefix */
+			size_t const prefix_size = sizeof("textures/")-1;
+			/* Take account for the leading '\0' */
+			size_t const max_allowed_size =
+				sizeof(complete_filepath) - prefix_size - 1;
+			size_t provided_filepath_length =
+				strnlen(rel_filepath, max_allowed_size);
+			if (provided_filepath_length < max_allowed_size) {
+				strncpy(
+					complete_filepath,
+					"textures/",
+					prefix_size);
+				strncpy(
+					complete_filepath+prefix_size,
+					rel_filepath,
+					provided_filepath_length);
+				LOG("Loading texture : %s\n", complete_filepath);
+				handle = fh_MapFileToMemory(complete_filepath);
+			}
+		}
+		break;
+		default: break;
+	}
+	return handle;
+}

@@ -2,11 +2,50 @@
 #define MYY_VECTOR_H 1
 
 #include <myy/helpers/c_types.h>
+#include <myy/helpers/macros.h>
+#include <myy/helpers/log.h>
+
+#ifndef _POSIX_C_SOURCE
+#define HAD_TO_DEFINE_POSIX_C_SOURCE 1
+#define _POSIX_C_SOURCE 200112L
+#endif
+
 #include <stdlib.h>
+
+/* Who knows what could happen with the Android stupid build
+ * system if we let those macros on.
+ */
+#ifdef HAD_TO_DEFINE_POSIX_C_SOURCE
+#undef _POSIX_C_SOURCE
+#undef HAD_TO_DEFINE_POSIX_C_SOURCE
+#endif
+
 #include <stdio.h>
 #include <string.h>
+#include <inttypes.h>
 
 #define ALIGN_ON_POW2(x, p) ((x)+(p-1) & ~(p-1))
+
+/* Because Android is too fucking stupid to provide
+ * a real implementation of aligned_alloc in its stdlib.
+ */
+void * weak_function aligned_alloc(
+	size_t const alignment,
+	size_t const size)
+{
+	/* I REALLY hope that they've got a function that
+	 * dates from the early 2000
+	 */
+	void * allocated_space_address = (void *) 0;
+
+	int ret =
+		posix_memalign(&allocated_space_address, alignment, size);
+
+	if (ret == 0)
+		return (void *) allocated_space_address;
+	else
+		return (void *) 0;
+}
 
 struct myy_vector {
 	uintptr_t begin;
@@ -110,10 +149,9 @@ static inline void myy_vector_forget_last(
 static inline void myy_vector_inspect(
 	struct myy_vector * __restrict const vector)
 {
-	printf(
-		"Begin : 0x%016lx\n"
-		"Tail  : 0x%016lx\n"
-		"End   : 0x%016lx\n",
+	LOG("Begin : 0x%016" PRIxPTR "\n"
+		"Tail  : 0x%016" PRIxPTR "\n"
+		"End   : 0x%016" PRIxPTR "\n",
 		vector->begin, vector->tail, vector->end);
 }
 
@@ -242,7 +280,7 @@ static inline void myy_vector_inspect(
 		size_t const n_elements,                                                   \
 		T const * __restrict const source)                                         \
 	{                                                                              \
-		myy_vector_add(                                                            \
+		return myy_vector_add(                                                     \
 			(struct myy_vector *) vector,                                          \
 			n_elements * sizeof(T),                                                \
 			(uint8_t const *) source);                                             \
@@ -293,10 +331,10 @@ static inline void myy_vector_inspect(
 	static inline void myy_vector_##suffix##_inspect(                              \
 		myy_vector_##suffix  * __restrict const vector)                            \
 	{                                                                              \
-		printf(                                                                    \
-			"Begin            : 0x%016lx\n"                                        \
-			"Tail             : 0x%016lx\n"                                        \
-			"End              : 0x%016lx\n"                                        \
+		LOG(                                                                       \
+			"Begin            : 0x%016" PRIxPTR "\n"                               \
+			"Tail             : 0x%016" PRIxPTR "\n"                               \
+			"End              : 0x%016" PRIxPTR "\n"                               \
 			"N Elements       : %zu\n"                                             \
 			"Allocated memory : %zu\n"                                             \
 			"Used memory      : %zu\n",                                            \

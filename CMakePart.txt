@@ -1,38 +1,38 @@
 
 # Common Section
 set (MyyCommonHelpers
-     myy/helpers/opengl/buffers.c
-     myy/helpers/opengl/loaders.c
-     myy/helpers/opengl/shaders_pack.c
-     myy/helpers/fonts/packed_fonts_display.c
-     myy/helpers/fonts/packed_fonts_parser.c
-     myy/helpers/arrays.c
-     myy/helpers/hitbox_action.c
-     myy/helpers/matrices.c
-     myy/helpers/memory.c
-     myy/helpers/strings.c
-     myy/helpers/vector.c)
+	myy/helpers/opengl/buffers.c
+	myy/helpers/opengl/loaders.c
+	myy/helpers/opengl/shaders_pack.c
+	myy/helpers/fonts/packed_fonts_display.c
+	myy/helpers/fonts/packed_fonts_parser.c
+	myy/helpers/arrays.c
+	myy/helpers/hitbox_action.c
+	myy/helpers/matrices.c
+	myy/helpers/memory.c
+	myy/helpers/strings.c
+	myy/helpers/vector.c)
 set (MyyLinuxHelpers
-     myy/platforms/linux/common/helpers/file.c
-     myy/platforms/linux/common/helpers/browser.c)
+	myy/platforms/linux/common/helpers/file.c
+	myy/platforms/linux/common/helpers/browser.c)
 set (MyyPlatformsDir
-     myy/platforms)
+	myy/platforms)
 set (MyyHelpersHeaders
-     myy/myy.h
-     myy/current/opengl.h
-     myy/helpers/opengl/loaders.h
-     myy/helpers/opengl/shaders_pack.h
-     myy/helpers/fonts/packed_fonts_display.h
-     myy/helpers/fonts/packed_fonts_parser.h
-     myy/helpers/arrays.h
-     myy/helpers/file.h
-     myy/helpers/hitbox_action.h
-     myy/helpers/log.h
-     myy/helpers/matrices.h
-     myy/helpers/memory.h
-     myy/helpers/strings.h
-     myy/helpers/struct.h
-     myy/helpers/vector.h)
+	myy/myy.h
+	myy/current/opengl.h
+	myy/helpers/opengl/loaders.h
+	myy/helpers/opengl/shaders_pack.h
+	myy/helpers/fonts/packed_fonts_display.h
+	myy/helpers/fonts/packed_fonts_parser.h
+	myy/helpers/arrays.h
+	myy/helpers/file.h
+	myy/helpers/hitbox_action.h
+	myy/helpers/log.h
+	myy/helpers/matrices.h
+	myy/helpers/memory.h
+	myy/helpers/strings.h
+	myy/helpers/struct.h
+	myy/helpers/vector.h)
 
 add_custom_target(MyyHeaders SOURCES ${MyyHelpersHeaders})
 
@@ -44,31 +44,30 @@ if (MYY_X11 OR MYY_DRM)
 #	file(COPY ${MyyFoldersToCopy} DESTINATION .)
 
 	set(CommonSources
-	    myy/myy_stubs.c
-	    ${MyyCommonHelpers}
-	    ${MyyLinuxHelpers}
-	    ${MyyProjectSources})
+		myy/myy_stubs.c
+		${MyyCommonHelpers}
+		${MyyLinuxHelpers}
+		${MyyProjectSources})
 	set(CommonLibraries
-	    GLESv2
-	    EGL
-	    ${MyyProjectLibDeps})
+		GLESv2
+		EGL
+		${MyyProjectLibDeps})
 	if (MYY_X11)
 
 		set(MyyX11Sources
-		    myy/platforms/linux/X11/Xlib/init_window.c
-		    myy/platforms/linux/X11/Xlib/main.c)
+			myy/platforms/linux/X11/Xlib/init_window.c
+			myy/platforms/linux/X11/Xlib/main.c)
 
 		add_executable(Program_X11
-		              ${MyyMainHooks}
-		              ${CommonSources}
-		              ${MyyX11Sources})
+			${MyyMainHooks}
+			${CommonSources}
+			${MyyX11Sources})
 		add_dependencies(Program_X11 Assets)
 		target_link_libraries(Program_X11
-		                     ${CommonLibraries}
-		                      X11
-		                      xcb
-		                      xcb-xkb
-		                     )
+			${CommonLibraries}
+			X11
+			xcb
+			xcb-xkb)
 		#add_executable(Program_X11_Tests
 		#              ${MyyTestsMainHooks}
 		#              ${MyyTestsSources}
@@ -90,18 +89,19 @@ if (MYY_X11 OR MYY_DRM)
 		set(MyyDRMSources
 		    myy/platforms/linux/DRM/main.c
 		    myy/platforms/linux/DRM/evdev.c)
-		include_directories(${DRM_INCLUDE_DIRS} ${GBM_INCLUDE_DIRS} ${EVDEV_INCLUDE_DIRS})
+		include_directories(
+			${DRM_INCLUDE_DIRS}
+			${GBM_INCLUDE_DIRS}
+			${EVDEV_INCLUDE_DIRS})
 		add_executable(Program_DRM
-		               ${CommonSources}
-		               ${MyyDRMSources}
-		              )
+			${CommonSources}
+			${MyyDRMSources})
 		add_dependencies(Program_DRM Assets)
 		target_link_libraries(Program_DRM
-		                      ${CommonLibraries}
-		                      ${DRM_LIBRARIES}
-		                      ${GBM_LIBRARIES}
-		                      ${EVDEV_LIBRARIES}
-		                     )
+			${CommonLibraries}
+			${DRM_LIBRARIES}
+			${GBM_LIBRARIES}
+			${EVDEV_LIBRARIES})
 		add_custom_command(TARGET Program_DRM PRE_BUILD
 			COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/regen_assets.sh
 			WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
@@ -112,22 +112,21 @@ if (MYY_X11 OR MYY_DRM)
 			COMMAND ${CMAKE_COMMAND} -E copy ${MyyTextures} ${CMAKE_CURRENT_BINARY_DIR}/textures/
 			WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
 		add_executable(Program_DRM_Tests
-		               ${MyyTestsMainHooks}
-		               ${MyyTestsSources}
-		               ${CommonSources}
-		               ${MyyDRMSources}
-		              )
+			${MyyTestsMainHooks}
+			${MyyTestsSources}
+			${CommonSources}
+			${MyyDRMSources})
 		target_link_libraries(Program_DRM_Tests
-		                      ${CommonLibraries}
-		                      ${DRM_LIBRARIES}
-		                      ${GBM_LIBRARIES}
-		                      ${EVDEV_LIBRARIES}
-		                     )
+			${CommonLibraries}
+			${DRM_LIBRARIES}
+			${GBM_LIBRARIES}
+			${EVDEV_LIBRARIES})
 	endif (MYY_DRM)
 endif (MYY_X11 OR MYY_DRM)
 
 if (MYY_ANDROID)
 	set(CMAKE_SYSTEM_NAME Android)
+	
 
 	# The variable ANDROID_ASSETS_DIRECTORIES is not passed nor set
 	# automatically...
@@ -150,23 +149,25 @@ if (MYY_ANDROID)
 	list(GET ANDROID_ASSETS_DIRECTORIES 0 first-android-assets-dir)
 	#file(COPY ${MyyFoldersToCopy} DESTINATION ${first-android-assets-dir})
 
-	# message(STATUS "FIRST DIR : ${first-android-assets-dir}")
-	# message(STATUS "ANDROID ASSETS DIRECTORY : ${ANDROID_ASSETS_DIRECTORIES}")
+	message(STATUS "FIRST DIR : ${first-android-assets-dir}")
+	message(STATUS "ANDROID ASSETS DIRECTORY : ${ANDROID_ASSETS_DIRECTORIES}")
 
+	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c11")
 	set(MyyAndroidSources
-	    myy/platforms/android/android_dummy_main.c
-	    myy/platforms/android/android_native_app_glue.c
-	    myy/platforms/android/helpers/android_file.c)
+		myy/myy_stubs.c
+		myy/platforms/android/android_dummy_main.c
+		myy/platforms/android/android_native_app_glue.c
+		myy/platforms/android/helpers/android_file.c)
 	find_library(android-lib-log     log)
 	find_library(android-lib-GLESv2  GLESv2)
 	find_library(android-lib-EGL     EGL)
 	find_library(android-lib-android android)
 	add_library(main
-	            SHARED
-	            ${MyyMainHooks}
-	            ${MyyCommonHelpers}
-	            ${MyyAndroidSources}
-	            ${MyyProjectSources})
+		SHARED
+		${MyyMainHooks}
+		${MyyCommonHelpers}
+		${MyyAndroidSources}
+		${MyyProjectSources})
 	add_dependencies(main Assets)
 	add_custom_command(TARGET main PRE_BUILD
 		COMMAND ${CMAKE_COMMAND} -E copy ${MyyData} ${first-android-assets-dir}/data/
@@ -175,10 +176,10 @@ if (MYY_ANDROID)
 		COMMAND ${CMAKE_COMMAND} -E copy ${MyyTextures} ${first-android-assets-dir}/textures/
 		WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
 	target_link_libraries(main
-	                      ${android-lib-log}
-	                      ${android-lib-GLESv2}
-	                      ${android-lib-EGL}
-	                      ${android-lib-android}
-	                      ${MyyProjectLibDeps})
+		${android-lib-log}
+		${android-lib-GLESv2}
+		${android-lib-EGL}
+		${android-lib-android}
+		${MyyProjectLibDeps})
 
 endif (MYY_ANDROID)

@@ -94,30 +94,31 @@ int fh_ReadBytesFromFile
  unsigned int const size,
  unsigned int const offset);
 
-/** Copy the whole file contents into buffer
-*
-* ASSUMPTIONS :
-* - 'buffer' can contain the whole file
-*
-* CAUTION :
-* - If there's not enough space in buffer, this procedure will most
-*   likely generate a SIGSEGV or, worse, corrupt the memory.
-* - This function returns either 0 or 1. Not -1 !
-*
-* PARAMS :
-* @param pathname The file's path in the Assets archive.
-* @param buffer   The buffer to store the file's content in.
-*
-* @returns
-* - 1 if the whole copy was done successfully
-* - 0 otherwise
-*/
+/** 
+ * @brief  Copy the whole file contents into buffer
+ *
+ * ASSUMPTIONS :
+ * - 'buffer' can contain the whole file
+ *
+ * CAUTION :
+ * - If there's not enough space in buffer, this procedure will most
+ *   likely generate a SIGSEGV or, worse, corrupt the memory.
+ * - This function returns either 0 or 1. Not -1 !
+ *
+ * PARAMS :
+ * @param pathname The file's path in the Assets archive.
+ * @param buffer   The buffer to store the file's content in.
+ *
+ * @returns
+ * - 1 if the whole copy was done successfully
+ * - 0 otherwise
+ */
 unsigned int fh_WholeFileToBuffer
 (char const * __restrict const pathname,
  void * __restrict const buffer);
 
 /**
- * Map an entire file in memory (mmap).
+ * @brief Map an entire file in memory (mmap).
  *
  * PARAMS :
  * @param pathname The file's path in the Assets archive.
@@ -134,14 +135,27 @@ struct myy_fh_map_handle fh_MapFileToMemory
 (char const * __restrict const pathname);
 
 /**
- * Unmap a previously mapped file from the system's memory
- *
- * @brief fh_UnmapFileFromMemory
+ * @brief Unmap a previously mapped file from the system's memory
  *
  * PARAMS:
  * @param handle The data structure returned by fh_MapFileToMemory
  */
 void fh_UnmapFileFromMemory
 (struct myy_fh_map_handle const handle);
+
+enum myy_asset_type {
+	myy_asset_type_texture
+};
+
+/**
+ * @brief Map an asset into memory.
+ * 
+ * This avoids "guessing" the folder where the asset is and just
+ * load it by relative filename.
+ * 
+ */
+struct myy_fh_map_handle myy_asset_map_to_memory(
+	char const * __restrict const pathname,
+	enum myy_asset_type const type);
 
 #endif

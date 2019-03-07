@@ -9,6 +9,8 @@
 #include <myy/helpers/opengl/loaders.h>
 #include <myy/current/opengl.h>
 
+#include <stdlib.h>
+
 /* Please, keep it a power of 2 size */
 struct myy_gl_text_quad {
 	int16_t left, right, down, up;

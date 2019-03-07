@@ -48,10 +48,10 @@ int main(int argc, char **argv) {
 		? window_params.title : "Myy Window";
 	window_params.width =
 		(window_params.width != 0)
-		? window_params.width : 1280;
+		? window_params.width : 1920;
 	window_params.height =
 		(window_params.height != 0)
-		? window_params.height : 720;
+		? window_params.height : 1080;
 
 	uint8_t context_created = CreateWindowWithEGLContext(
 		&window_params, &global_context, &implementation_details);

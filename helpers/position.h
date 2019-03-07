@@ -47,11 +47,12 @@ static inline position_S position_S_relative_to_window_coords
 	return new_position;
 }
 
-static inline position_S position_S_copy_position
+static inline position_S * position_S_copy_position
 (position_S * __restrict const position, position_S new_position)
 {
 	position->x = new_position.x;
 	position->y = new_position.y;
+	return position;
 }
 
 static inline void position_uS_set
