@@ -61,6 +61,8 @@ static struct current_window {
 
 AAssetManager *myy_assets_manager;
 
+
+
 /**
  * Initialize an EGL context for the current display.
  */
@@ -161,12 +163,26 @@ int animating;
  */
 unsigned long last_tap = 0;
 int16_t start_x = 0, start_y = 0;
+uint64_t flags = 0;
 static int32_t engine_handle_input(
 	struct android_app * const app,
 	AInputEvent * const event)
 {
-	unsigned long const tap_time = AMotionEvent_getEventTime(event);
+	if (flags) return 0;
 	unsigned int const action = AMotionEvent_getAction(event);
+
+	if (action != AMOTION_EVENT_ACTION_DOWN &
+		action != AMOTION_EVENT_ACTION_MOVE)
+	{
+		LOG("******** ?? Action : %d ?? ********\n", action);
+		return 0;
+	}
+	else {
+		int32_t flags = AMotionEvent_getFlags(event);
+		LOG("******** !! Action : %d (flags : %d) !! ********\n", action, flags);
+		
+	}
+	//unsigned long const tap_time = AMotionEvent_getEventTime(event);
 	int const x = AMotionEvent_getX(event, 0);
 	int const y = AMotionEvent_getY(event, 0);
 
@@ -175,11 +191,11 @@ static int32_t engine_handle_input(
 	case AMOTION_EVENT_ACTION_DOWN:
 		start_x = x;
 		start_y = y;
-		if (tap_time - last_tap > 0x10000000)
+		//if (tap_time - last_tap > 0x10000000)
 			myy_click(x, y, 1);
-		else 
-			myy_doubleclick(x, y, 1);
-		last_tap = tap_time;
+		//else 
+		//	myy_doubleclick(x, y, 1);
+		//last_tap = tap_time;
 		break;
 	case AMOTION_EVENT_ACTION_MOVE:
 		myy_move(x, y, start_x, start_y);
@@ -377,6 +393,14 @@ void myy_user_quit()
 	myy_stop();
 }
 
+
+void Java_com_miouyouyou_gametests_NativeInsanity_myyTextInputStopped()
+{
+	LOG("!!!!!!!!!!!!!!??????????????????????!!!!!!!!!!!!!!!§????????????????? gettid() : %x\n", gettid());
+	flags = 0;
+}
+
+
 /**
  * This is the main entry point of a native application that is using
  * android_native_app_glue.  It runs in its own thread, with its own
@@ -388,6 +412,7 @@ void android_main(struct android_app* app) {
 	// Make sure glue isn't stripped.
 	app_dummy();
 
+	Java_com_miouyouyou_gametests_NativeInsanity_myyTextInputStopped();
 	app->onAppCmd = engine_handle_cmd;
 	app->onInputEvent = engine_handle_input;
 
@@ -440,3 +465,37 @@ void android_main(struct android_app* app) {
 		}
 	}
 }
+
+void myy_trigger_text_input() {
+	LOG("Mon hamster fait du kung-fu sauvage transalpin !\n");
+
+	LOGW("[myy_trigger_text_input] !!");
+	struct android_calling_kit android =
+		prepare_java_call(myy_android_activity);
+
+	const char * const java_method_name = "startInput";
+	const char * const java_method_signature = "(JI)V";
+
+	jmethodID activity_startInput_meth =
+		android.jni_helpers->GetMethodID(
+			android.env, android.activity_class,
+			java_method_name, java_method_signature);
+
+	if (activity_startInput_meth != NULL) {
+		LOGW("Starting input..., methodID address : %p\n",
+			activity_startInput_meth);
+		LOGW("Passing game_state : %p\n", &game_state);
+		flags = 1;
+		android.jni_helpers->CallVoidMethod(
+			android.env, android.java_activity,
+			activity_startInput_meth, &game_state, 1);
+	}
+	else 
+		LOGW("You're sure about that method name : %s %s\n",
+			java_method_name, java_method_signature);
+
+	// TODO Document this
+	(*android.java_vm)->DetachCurrentThread(android.java_vm);
+	
+}
+
