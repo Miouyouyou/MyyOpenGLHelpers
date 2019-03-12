@@ -36,10 +36,12 @@
 #include <sys/types.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <stddef.h>
 
 #include <myy/myy.h>
 #include <myy/current/opengl.h>
 #include <myy/helpers/macros.h>
+#include <myy/helpers/vector.h>
 
 #ifdef DEBUG
 #define LOGI(...) ((void)__android_log_print(ANDROID_LOG_INFO, "native-activity", __VA_ARGS__))
@@ -61,7 +63,44 @@ static struct current_window {
 
 AAssetManager *myy_assets_manager;
 
+/* TODO REMOVE THIS SHIT ! */
+struct android_app * ugly_pointer = NULL;
 
+myy_vector_template(utf8, uint8_t)
+
+myy_vector_utf8 received_string;
+
+void myy_editor_finished(uint8_t const * __restrict const array, size_t array_length);
+static void android_app_write_cmd(struct android_app* android_app, int8_t cmd) {
+    if (write(android_app->msgwrite, &cmd, sizeof(cmd)) != sizeof(cmd)) {
+        LOGW("Failure writing android_app cmd: %s\n", strerror(errno));
+    }
+}
+/* Turns out that the JNI isn't able to produce valid UTF-8 strings.
+ * So we have to resort to that kind of hacks where we convert
+ * the string UTF-8 bytes arrays inside the Java application, and
+ * pass the byte array to the native code...
+ * 
+ * Everything is great in Java.
+ */
+void Java_com_miouyouyou_gametests_NativeInsanity_myyTextInputStopped(
+	JNIEnv * __restrict const jni,
+	jobject object,
+	jbyteArray provided_string)
+{
+	myy_vector_utf8_reset(&received_string);
+	jbyte * __restrict const utf8_string =
+		(*jni)->GetByteArrayElements(jni, provided_string, NULL);
+	size_t const utf8_string_size =
+		(*jni)->GetArrayLength(jni, provided_string);
+
+	myy_vector_utf8_add(&received_string,
+		utf8_string_size,
+		(uint8_t const * __restrict) utf8_string);
+	uint8_t append = 0;
+	myy_vector_utf8_add(&received_string, 1, &append);
+	android_app_write_cmd(ugly_pointer, MYY_APP_CMD_EDITOR_SENT_TEXT);
+}
 
 /**
  * Initialize an EGL context for the current display.
@@ -261,6 +300,11 @@ static void engine_handle_cmd(
 		myy_cleanup_drawing();
 		myy_stop();
 		egl_stop(e);
+	case MYY_APP_CMD_EDITOR_SENT_TEXT:
+		myy_editor_finished(
+			myy_vector_utf8_data(&received_string),
+			myy_vector_utf8_length(&received_string));
+		flags = 0;
 		break;
 	}
 
@@ -394,11 +438,6 @@ void myy_user_quit()
 }
 
 
-void Java_com_miouyouyou_gametests_NativeInsanity_myyTextInputStopped()
-{
-	LOG("!!!!!!!!!!!!!!??????????????????????!!!!!!!!!!!!!!!§????????????????? gettid() : %x\n", gettid());
-	flags = 0;
-}
 
 
 /**
@@ -408,11 +447,14 @@ void Java_com_miouyouyou_gametests_NativeInsanity_myyTextInputStopped()
  */
 void android_main(struct android_app* app) {
 
-	
+	/* TODO How to generate serious issues in one lesson */
+	ugly_pointer = app;
+	received_string = myy_vector_utf8_init(4096);
+
 	// Make sure glue isn't stripped.
 	app_dummy();
 
-	Java_com_miouyouyou_gametests_NativeInsanity_myyTextInputStopped();
+	LOG("!!!!!!!!!!!!!!??????????????????????:!!!!!!!!!!!!!!!§????????????????? gettid() : %x\n", gettid());
 	app->onAppCmd = engine_handle_cmd;
 	app->onInputEvent = engine_handle_input;
 
@@ -488,7 +530,7 @@ void myy_trigger_text_input() {
 		flags = 1;
 		android.jni_helpers->CallVoidMethod(
 			android.env, android.java_activity,
-			activity_startInput_meth, &game_state, 1);
+			activity_startInput_meth, &game_state, 0);
 	}
 	else 
 		LOGW("You're sure about that method name : %s %s\n",

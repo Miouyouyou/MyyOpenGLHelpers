@@ -298,6 +298,8 @@ enum {
      * and waiting for the app thread to clean up and exit before proceeding.
      */
     APP_CMD_DESTROY,
+
+	MYY_APP_CMD_EDITOR_SENT_TEXT,
 };
 
 /**
