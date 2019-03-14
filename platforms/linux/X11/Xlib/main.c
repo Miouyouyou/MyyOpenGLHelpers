@@ -28,17 +28,24 @@
 #include <string.h>
 #include "init_window.h"
 
-static void stop(unsigned int * running) {
-	*running = 0;
+void myy_platform_stop(myy_states * __restrict const states)
+{
+	struct myy_xlib_state * __restrict const platform_state =
+		(void *) (states->platform_state);
+	*platform_state->running = 0;
 }
 
 int main(int argc, char **argv) {
 
+	uintreg_t running = 1;
 	struct _escontext global_context;
 	struct myy_window_parameters window_params = {0};
 	struct myy_xlib_state implementation_details = {0};
+	implementation_details.running = &running;
 
-	int ret = myy_init(argc, argv, &window_params);
+	myy_states states = {0};
+	states.platform_state = &implementation_details;
+	int ret = myy_init(&states, argc, argv, &window_params);
 	if (ret)
 		exit(ret);
 
@@ -57,35 +64,49 @@ int main(int argc, char **argv) {
 		&window_params, &global_context, &implementation_details);
 	if (!context_created) exit(1);
 
-	myy_generate_new_state();
-	myy_init_drawing();
+	myy_init_drawing(&states,
+		global_context.window_width, global_context.window_height);
 	myy_display_initialised(
+		&states,
 		global_context.window_width,
 		global_context.window_height);
 
-	unsigned int running = 1;
-
-	struct myy_platform_handlers * handlers =
-		myy_get_platform_handlers();
-
-	handlers->stop = stop;
-	handlers->stop_data = &running;
-
-	struct myy_input_state input_state = {0,{0}};
+	clock_gettime(CLOCK_MONOTONIC_RAW, &states.current_frame_time);
+	uint64_t last_frame_ns;
+		
+	uint64_t current_frame_ns = 
+		states.current_frame_time.tv_sec * 1000000000
+		+ states.current_frame_time.tv_nsec;;
+	uint64_t delta_ns;
+	uint64_t i = 0;
+	
 	while(running) {
+		/* Get the current times */
+		clock_gettime(CLOCK_MONOTONIC_RAW, &states.current_frame_time);
+		last_frame_ns =
+			current_frame_ns;
+		current_frame_ns =
+			states.current_frame_time.tv_sec * 1000000000
+			+ states.current_frame_time.tv_nsec;
+		delta_ns =
+			current_frame_ns - last_frame_ns;
+
+		/* TODO Do we need THAT much arguments ? */
 		ParseEvents(
+			&states,
 			global_context.native_display,
-			&input_state,
 			&implementation_details);
-		myy_draw();
-		myy_after_draw();
+		myy_draw_before(&states, i, delta_ns);
+		myy_draw(&states, i, delta_ns);
+		myy_draw_after(&states, i, delta_ns);
 		RefreshWindow(
 			global_context.display, global_context.surface
 		);
+		i++;
 	}
 
-	myy_stop();
-	myy_cleanup_drawing();
+	myy_stop(&states);
+	myy_cleanup_drawing(&states);
 	Terminate(
 		global_context.native_display,
 		global_context.native_window,

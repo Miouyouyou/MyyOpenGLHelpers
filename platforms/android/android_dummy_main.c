@@ -70,7 +70,9 @@ myy_vector_template(utf8, uint8_t)
 
 myy_vector_utf8 received_string;
 
-void myy_editor_finished(uint8_t const * __restrict const array, size_t array_length);
+void myy_editor_finished(
+	myy_states * __restrict const states,
+	uint8_t const * __restrict const array, size_t array_length);
 static void android_app_write_cmd(struct android_app* android_app, int8_t cmd) {
     if (write(android_app->msgwrite, &cmd, sizeof(cmd)) != sizeof(cmd)) {
         LOGW("Failure writing android_app cmd: %s\n", strerror(errno));
@@ -195,7 +197,7 @@ void myy_cleanup_drawing() {
  * Shared state for our app.
  */
 
-int animating;
+uintreg_t animating;
 
 /**
  * Process the next input event.
@@ -208,45 +210,27 @@ static int32_t engine_handle_input(
 	AInputEvent * const event)
 {
 	if (flags) return 0;
+	myy_states * __restrict const states =
+		app->userData;
 	unsigned int const action = AMotionEvent_getAction(event);
 
-	if (action != AMOTION_EVENT_ACTION_DOWN &
-		action != AMOTION_EVENT_ACTION_MOVE)
-	{
-		LOG("******** ?? Action : %d ?? ********\n", action);
-		return 0;
-	}
-	else {
-		int32_t flags = AMotionEvent_getFlags(event);
-		LOG("******** !! Action : %d (flags : %d) !! ********\n", action, flags);
-		
-	}
 	//unsigned long const tap_time = AMotionEvent_getEventTime(event);
 	int const x = AMotionEvent_getX(event, 0);
 	int const y = AMotionEvent_getY(event, 0);
 
-
 	switch(action) {
 	case AMOTION_EVENT_ACTION_DOWN:
-		start_x = x;
-		start_y = y;
-		//if (tap_time - last_tap > 0x10000000)
-			myy_click(x, y, 1);
-		//else 
-		//	myy_doubleclick(x, y, 1);
-		//last_tap = tap_time;
+		myy_click(states, x, y, 1);
 		break;
 	case AMOTION_EVENT_ACTION_MOVE:
-		myy_move(x, y, start_x, start_y);
+		myy_hover(states, x, y);
 		break;
+	default:
+		return 0;
 	}
 
 	return 1;
 }
-
-static void goto_data_dir(const char* data_dir) { chdir(data_dir); }
-
-struct myy_game_state game_state = {0};
 
 /* A hidden global state pointer, how nice ! */
 ANativeActivity * myy_android_activity;
@@ -259,49 +243,55 @@ static void engine_handle_cmd(
 {
 
 	struct egl_elements *e = &egl;
-	struct myy_game_state *state = &game_state;
+	myy_states * __restrict const states =
+		app->userData;
+	
 	switch (cmd) {
 	case APP_CMD_INIT_WINDOW:
 		LOGW("======================================");
 		LOGW("========= Initialising window");
 		if (app->window != NULL)
 			add_egl_context_to(app->window, e, &current_android_window);
-		myy_init_drawing();
-		myy_display_initialised(
+		myy_init_drawing(states,
 			current_android_window.width,
 			current_android_window.height);
-		animating = 1;
+		myy_display_initialised(
+			states,
+			current_android_window.width,
+			current_android_window.height);
+		*app->animating = 1;
 		break;
 	case APP_CMD_WINDOW_RESIZED:
 		LOGW("========= Resizing !");
-		animating = 0;
+		*app->animating = 0;
 		egl_stop(e);
 		add_egl_context_to(app->window, e, &current_android_window);
-		animating = 1;
+		*app->animating = 1;
 	case APP_CMD_RESUME:
 		LOGW("========= Resuming !");
 		myy_android_activity = app->activity;
-		myy_resume_state(state);
+		myy_resume_state(states, states->game_state);
 		break;
 	case APP_CMD_PAUSE:
 		LOGW("========= Pause !");
-		animating = 0;
-		myy_save_state(state);
+		*app->animating = 0;
+		myy_save_state(states, states->game_state);
 		break;
 	case APP_CMD_STOP:
-		myy_stop();
+		myy_stop(states->game_state);
 		break;
 	case APP_CMD_SAVE_STATE:
 		LOGW("========= State saved !");
-		myy_save_state(state);
+		myy_save_state(states, states->game_state);
 		break;
 	case APP_CMD_TERM_WINDOW:
 		LOGW("========= Terminated !");
-		myy_cleanup_drawing();
-		myy_stop();
+		myy_cleanup_drawing(states);
+		myy_stop(states);
 		egl_stop(e);
 	case MYY_APP_CMD_EDITOR_SENT_TEXT:
 		myy_editor_finished(
+			states,
 			myy_vector_utf8_data(&received_string),
 			myy_vector_utf8_length(&received_string));
 		flags = 0;
@@ -408,9 +398,14 @@ void myy_open_website(const char * __restrict const url) {
 
 }
 
-void myy_stop()
+void myy_platform_stop(myy_states * __restrict const states)
 {
-	animating = 0;
+	struct android_app * app = states->platform_state;
+	app->animating = 0;
+}
+
+void myy_stop(myy_states * __restrict const states)
+{
 	/* TODO Can't this crash the whole thing ?
 	 * Removing the whole display while operations are
 	 * still going on might not be the best way to
@@ -423,18 +418,18 @@ void myy_stop()
 	 * one could cause any issue, if we end up the thread
 	 * abruptly.
 	 */
-	myy_cleanup_drawing();
-	myy_save_state(&game_state);
+	myy_cleanup_drawing(states);
+	myy_save_state(states, states->game_state);
 }
 
-void myy_user_quit()
+void myy_user_quit(myy_states * __restrict const states)
 {
 	/* TODO
 	 * Check if it's not better to use the Android event system
 	 * instead. This out-of-band way might not be the best for
 	 * such systems.
 	 */
-	myy_stop();
+	myy_platform_stop(states);
 }
 
 
@@ -447,6 +442,14 @@ void myy_user_quit()
  */
 void android_main(struct android_app* app) {
 
+	myy_states states = {0};
+	states.platform_state = app;
+	app->userData = &states;
+	app->animating = &animating;
+	char * app_command_name = "myy_android";
+	struct myy_window_parameters useless_parameters;
+	myy_init(&states, 1, &app_command_name, &useless_parameters);
+
 	/* TODO How to generate serious issues in one lesson */
 	ugly_pointer = app;
 	received_string = myy_vector_utf8_init(4096);
@@ -454,7 +457,6 @@ void android_main(struct android_app* app) {
 	// Make sure glue isn't stripped.
 	app_dummy();
 
-	LOG("!!!!!!!!!!!!!!??????????????????????:!!!!!!!!!!!!!!!§????????????????? gettid() : %x\n", gettid());
 	app->onAppCmd = engine_handle_cmd;
 	app->onInputEvent = engine_handle_input;
 
@@ -464,6 +466,14 @@ void android_main(struct android_app* app) {
 	// loop waiting for stuff to do.
 	LOGW("myy_open_website address : %p\n", myy_open_website);
 
+	clock_gettime(CLOCK_MONOTONIC_RAW, &states.current_frame_time);
+	uint64_t last_frame_ns;
+		
+	uint64_t current_frame_ns = 
+		states.current_frame_time.tv_sec * 1000000000
+		+ states.current_frame_time.tv_nsec;
+	uint64_t delta_ns;
+	uint64_t i = 0;
 	struct egl_elements* e = &egl;
 	while (1) {
 		// Read all pending events.
@@ -484,7 +494,7 @@ void android_main(struct android_app* app) {
 		while (ident >= 0) {
 
 			if (app->destroyRequested != 0) {
-				myy_stop();
+				myy_stop(&states);
 				return;
 			}
 
@@ -500,15 +510,29 @@ void android_main(struct android_app* app) {
 
 		/* Draw */
 		if (animating && app->window != NULL) {
+			/* Get the current times */
+			clock_gettime(CLOCK_MONOTONIC_RAW, &states.current_frame_time);
+			last_frame_ns =
+				current_frame_ns;
+			current_frame_ns =
+				states.current_frame_time.tv_sec * 1000000000
+				+ states.current_frame_time.tv_nsec;
+			delta_ns =
+				current_frame_ns - last_frame_ns;
 			// Drawing is throttled to the screen update rate, so there
 			// is no need to do timing here.
-			myy_draw();
+			myy_draw_before(&states, i, delta_ns);
+			myy_draw(&states, i, delta_ns);
 			egl_sync(e);
+			myy_draw_after(&states, i, delta_ns);
+			i++;
 		}
 	}
 }
 
-void myy_trigger_text_input() {
+void myy_text_input_start(
+	myy_states * __restrict const states)
+{
 	LOG("Mon hamster fait du kung-fu sauvage transalpin !\n");
 
 	LOGW("[myy_trigger_text_input] !!");
@@ -526,11 +550,11 @@ void myy_trigger_text_input() {
 	if (activity_startInput_meth != NULL) {
 		LOGW("Starting input..., methodID address : %p\n",
 			activity_startInput_meth);
-		LOGW("Passing game_state : %p\n", &game_state);
+		LOGW("Passing game_state : %p\n", &states);
 		flags = 1;
 		android.jni_helpers->CallVoidMethod(
 			android.env, android.java_activity,
-			activity_startInput_meth, &game_state, 0);
+			activity_startInput_meth, &states, 0);
 	}
 	else 
 		LOGW("You're sure about that method name : %s %s\n",

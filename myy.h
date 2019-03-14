@@ -24,24 +24,35 @@
 #ifndef MYY_INCLUDED
 #define MYY_INCLUDED 1
 
+#ifndef _POSIX_C_SOURCE
+#define HAD_TO_DEFINE_POSIX_C_SOURCE 1
+#define _POSIX_C_SOURCE 201901L
+#endif
+
 #include <stdint.h>
+#include <time.h>
+
+#ifdef HAD_TO_DEFINE_POSIX_C_SOURCE
+#undef HAD_TO_DEFINE_POSIX_C_SOURCE
+#undef _POSIX_C_SOURCE
+#endif
+
 #include <myy/helpers/fonts/packed_fonts_display.h>
 #include <myy/helpers/hitbox_action.h>
+
+struct myy_states_s {
+	void * user_state;
+	uint32_t surface_width, surface_height;
+	void * platform_state;
+	void * game_state;
+	void * platform_handlers;
+	struct timespec current_frame_time;
+};
+typedef struct myy_states_s myy_states;
 
 struct myy_common_data {
 	struct glyph_infos * __restrict fonts_glyphs;
 	hitboxes_S_t * hitboxes;
-};
-
-struct myy_game_state {
-  unsigned int saved;
-  unsigned int size;
-  uint8_t state[228];
-};
-
-struct myy_platform_handlers {
-	void (*stop)();
-	void * stop_data;
 };
 
 struct myy_window_parameters {
@@ -50,39 +61,91 @@ struct myy_window_parameters {
 	uintreg_t height;
 };
 
-struct myy_platform_handlers * myy_get_platform_handlers();
-void myy_display_initialised(unsigned int width, unsigned int height);
+void myy_display_initialised(
+	myy_states * __restrict state,
+	unsigned int width,
+	unsigned int height);
 int myy_init(
+	myy_states * __restrict state,
 	int argc,
 	char **argv,
 	struct myy_window_parameters * __restrict const parameters);
-void myy_init_drawing();
-void myy_draw();
-void myy_cleanup_drawing();
-void myy_stop();
+void myy_init_drawing(
+	myy_states * __restrict state,
+	uintreg_t surface_width,
+	uintreg_t surface_height);
+/* TODO Can be an issue wiht ARMv7.
+ * How about :
+ * last_frame_delta_s  (32 bits),
+ * last_frame_delat_ns (32 bits)
+ */
+void myy_draw_before(
+	myy_states * __restrict state,
+	uintreg_t i,
+	uint64_t last_frame_delta_ns);
+void myy_draw(
+	myy_states * __restrict state, 
+	uintreg_t i,
+	uint64_t last_frame_delta_ns);
+void myy_draw_after(
+	myy_states * __restrict state,
+	uintreg_t i,
+	uint64_t last_frame_delta_ns);
+void myy_cleanup_drawing(myy_states * __restrict state);
+void myy_stop(myy_states * __restrict state);
 /* User quit is a "Quit" action performed by the user, using the program
  * UI. This is different from closing the window abruptly. */
-void myy_user_quit();
+void myy_user_quit(myy_states * __restrict state);
 
-void myy_generate_new_state();
-void myy_save_state(struct myy_game_state *state);
-void myy_resume_state(struct myy_game_state *state);
+void * myy_user_state(myy_states * __restrict state);
+void myy_save_state(
+	myy_states * __restrict state,
+	void * game_state);
+void myy_resume_state(
+	myy_states * __restrict state,
+	void * game_state);
 
-void myy_click(int x, int y, unsigned int button);
-void myy_doubleclick(int x, int y, unsigned int button);
-void myy_hover(int x, int y);
-void myy_move(int x, int y, int start_x, int start_y);
-void myy_key(unsigned int keycode);
-void myy_key_release(unsigned int keycode);
+void myy_click(
+	myy_states * __restrict state,
+	int x,
+	int y,
+	unsigned int button);
+void myy_doubleclick(
+	myy_states * __restrict state,
+	int x,
+	int y,
+	unsigned int button);
+void myy_hover(
+	myy_states * __restrict state,
+	int x,
+	int y);
+void myy_move(
+	myy_states * __restrict state,
+	int x, int y,
+	int start_x, int start_y);
+void myy_key(
+	myy_states * __restrict state,
+	unsigned int keycode);
+void myy_key_release(
+	myy_states * __restrict state,
+	unsigned int keycode);
 void myy_text(
+	myy_states * __restrict state,
 	char const * __restrict const text,
 	size_t const text_size);
-void myy_after_draw();
 
 /* Temporary changes */
 enum mouse_action_type { myy_mouse_wheel_action };
 
-void myy_rel_mouse_move(int x, int y);
-void myy_mouse_action(enum mouse_action_type, int value);
+void myy_rel_mouse_move(myy_states * __restrict state, int x, int y);
+void myy_mouse_action(
+	myy_states * __restrict state,
+	enum mouse_action_type,
+	int value);
+
+void myy_text_input_start(myy_states * __restrict state);
+void myy_text_input_stop(myy_states * __restrict state);
+
+void myy_platform_stop(myy_states * __restrict state);
 
 #endif 

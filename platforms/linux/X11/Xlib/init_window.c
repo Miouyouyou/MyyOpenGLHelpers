@@ -437,8 +437,8 @@ EGLBoolean CreateWindowWithEGLContext(
 }
 
 void ParseEvents(
+	myy_states * __restrict const states,
 	Display * x_display,
-	struct myy_input_state * __restrict const input_state,
 	void * implementation_details)
 {
 
@@ -452,25 +452,21 @@ void ParseEvents(
 		switch(xev.type) {
 			case ClientMessage:
 				if (xev.xclient.data.l[0] == destroy)
-					myy_user_quit();
+					myy_user_quit(states);
 				break;
 			case ResizeRequest:
+				states->surface_width = xev.xresizerequest.width;
+				states->surface_height = xev.xresizerequest.height;
 				myy_display_initialised(
+					states,
 					xev.xresizerequest.width,
 					xev.xresizerequest.height);
 				break;
 			case FocusIn:
 				LOG("FocusIN\n");
-				Window win;
-				XSetICFocus(xlib_state->xic);
-				XGetICValues(xlib_state->xic, XNFocusWindow, &win, NULL);
-				LOG("Window : %ld\n", win);
-				XGetICValues(xlib_state->xic, XNClientWindow, &win, NULL);
-				LOG("Window : %ld\n", win); 
 				break;
 			case FocusOut:
 				LOG("FocusOUT\n");
-				XUnsetICFocus(xlib_state->xic);
 				break;
 			case ButtonPress:
 				;
@@ -483,32 +479,13 @@ void ParseEvents(
 				unsigned int const button = xev.xbutton.button;
 				unsigned long click_time  = xev.xbutton.time;
 
-				if (!input_state->move_click.start_button)
-				{
-					input_state->move_click.start_button = button;
-					input_state->move_click.start_x = x;
-					input_state->move_click.start_y = y;
-				}
-				/* TODO Let the application decide by passing the input state. */
-				if (click_time - input_state->last_click_ms > 250)
-					myy_click(x, y, button);
-				else
-					myy_doubleclick(x, y, button);
-				input_state->last_click_ms = click_time;
+				myy_click(states, x, y, button);
 
 				break;
 			case ButtonRelease:
-				input_state->move_click.start_button = 0;
 				break;
 			case MotionNotify:
-				/* TODO Let the application decide by passing the input state */
-				if (!input_state->move_click.start_button)
-					myy_hover(xev.xmotion.x, xev.xmotion.y);
-				else
-					myy_move(
-						xev.xmotion.x, xev.xmotion.y,
-						input_state->move_click.start_x,
-						input_state->move_click.start_y);
+				myy_hover(states, xev.xmotion.x, xev.xmotion.y);
 				break;
 			case KeyPress:
 				//myy_key(xev.xkey.keycode);
@@ -524,11 +501,11 @@ void ParseEvents(
 				LOG("lookup_status : %d\n", lookup_status);
 
 				if (len > 0)
-					myy_text(xlib_state->compose_buffer, len);
+					myy_text(states, xlib_state->compose_buffer, len);
 
 				break;
 			case KeyRelease:
-				myy_key_release(xev.xkey.keycode);
+				myy_key_release(states, xev.xkey.keycode);
 				break;
 			case DestroyNotify:
 			case UnmapNotify:
@@ -537,6 +514,22 @@ void ParseEvents(
 		}
 	}
 
+}
+
+void myy_text_input_start(
+	myy_states * __restrict const state)
+{
+	struct myy_xlib_state * __restrict const xlib_state =
+		(void *) (state->platform_state);
+	XSetICFocus(xlib_state->xic);
+}
+
+void myy_text_input_stop(
+	myy_states * __restrict const state)
+{
+	struct myy_xlib_state * __restrict const xlib_state =
+		(void *) (state->platform_state);
+	XUnsetICFocus(xlib_state->xic);
 }
 
 void Terminate(

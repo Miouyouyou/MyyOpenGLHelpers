@@ -62,6 +62,7 @@ struct myy_xlib_state {
 	XIM xim;
 	XIC xic;
 	char * __restrict compose_buffer;
+	uintreg_t * running;
 };
 
 int CreateNativeWindow(
@@ -80,8 +81,8 @@ EGLBoolean CreateWindowWithEGLContext(
 	void * implementation_details);
 
 void ParseEvents(
+	myy_states * __restrict const states,
 	Display * x_display,
-	struct myy_input_state * __restrict const input_state,
 	void * implementation_details);
 
 static inline void RefreshWindow(

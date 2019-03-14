@@ -18,6 +18,8 @@
 #ifndef _ANDROID_NATIVE_APP_GLUE_H
 #define _ANDROID_NATIVE_APP_GLUE_H
 
+#include <myy/helpers/c_types.h>
+
 #include <poll.h>
 #include <pthread.h>
 #include <sched.h>
@@ -171,6 +173,7 @@ struct android_app {
     AInputQueue* pendingInputQueue;
     ANativeWindow* pendingWindow;
     ARect pendingContentRect;
+	uintreg_t * animating;
 };
 
 enum {
