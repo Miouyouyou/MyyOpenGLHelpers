@@ -87,5 +87,24 @@ static inline position_S_4D position_S_4D_struct(
 	return pos_4D;
 }
 
+/* TODO Move away to another header */
+struct myy_rectangle {
+	int16_t top, bottom, left, right;
+};
+
+static inline position_S position_S_clamp_to_rectangle(
+	position_S pos,
+	struct myy_rectangle limits)
+{
+	
+	pos.x = (pos.x >= limits.left)  ? pos.x : limits.left;
+	pos.x = (pos.x <= limits.right) ? pos.x : limits.right;
+
+	pos.y = (pos.y >= limits.top)    ? pos.y : limits.top;
+	pos.y = (pos.y <= limits.bottom) ? pos.y : limits.bottom;
+
+	return pos;
+}
+
 
 #endif

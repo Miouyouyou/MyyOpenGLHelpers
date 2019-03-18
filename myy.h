@@ -45,6 +45,7 @@ struct myy_states_s {
 	uint32_t surface_width, surface_height;
 	void * platform_state;
 	void * game_state;
+	// TODO Useless ?
 	void * platform_handlers;
 	struct timespec current_frame_time;
 };
@@ -91,13 +92,15 @@ void myy_draw_after(
 	myy_states * __restrict state,
 	uintreg_t i,
 	uint64_t last_frame_delta_ns);
-void myy_cleanup_drawing(myy_states * __restrict state);
-void myy_stop(myy_states * __restrict state);
-/* User quit is a "Quit" action performed by the user, using the program
- * UI. This is different from closing the window abruptly. */
+void myy_cleanup_drawing(
+	myy_states * __restrict state);
+void myy_stop(
+	myy_states * __restrict state);
+/* User quit is a "Quit" action performed by the user,
+ * using the program UI.
+ * This is different from closing the window abruptly. */
 void myy_user_quit(myy_states * __restrict state);
 
-void * myy_user_state(myy_states * __restrict state);
 void myy_save_state(
 	myy_states * __restrict state,
 	void * game_state);

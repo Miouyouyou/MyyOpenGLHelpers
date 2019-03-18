@@ -35,6 +35,13 @@ void myy_platform_stop(myy_states * __restrict const states)
 	*platform_state->running = 0;
 }
 
+static uint64_t elapsed_time_ns(
+	struct timespec * __restrict const ts)
+{
+	clock_gettime(CLOCK_MONOTONIC_RAW, ts);
+	return ts->tv_sec * 1000000000 + ts->tv_nsec;
+}
+
 int main(int argc, char **argv) {
 
 	uintreg_t running = 1;
@@ -71,23 +78,18 @@ int main(int argc, char **argv) {
 		global_context.window_width,
 		global_context.window_height);
 
-	clock_gettime(CLOCK_MONOTONIC_RAW, &states.current_frame_time);
 	uint64_t last_frame_ns;
 		
 	uint64_t current_frame_ns = 
-		states.current_frame_time.tv_sec * 1000000000
-		+ states.current_frame_time.tv_nsec;;
+		elapsed_time_ns(&states.current_frame_time);
 	uint64_t delta_ns;
 	uint64_t i = 0;
 	
 	while(running) {
 		/* Get the current times */
-		clock_gettime(CLOCK_MONOTONIC_RAW, &states.current_frame_time);
 		last_frame_ns =
 			current_frame_ns;
-		current_frame_ns =
-			states.current_frame_time.tv_sec * 1000000000
-			+ states.current_frame_time.tv_nsec;
+		current_frame_ns = elapsed_time_ns(&states.current_frame_time);
 		delta_ns =
 			current_frame_ns - last_frame_ns;
 
