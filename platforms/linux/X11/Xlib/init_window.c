@@ -449,43 +449,47 @@ void ParseEvents(
 	while ( XPending( x_display ) ) {
 		XNextEvent( x_display, &xev );
 		if (XFilterEvent(&xev, None) == True) continue;
+
+		enum myy_input_events event_type = myy_input_event_invalid;
+		union myy_input_event_data data;
 		switch(xev.type) {
 			case ClientMessage:
-				if (xev.xclient.data.l[0] == destroy)
-					myy_user_quit(states);
+				if (xev.xclient.data.l[0] == destroy) {
+					event_type = myy_input_event_window_destroyed;
+				}
 				break;
 			case ResizeRequest:
-				states->surface_width = xev.xresizerequest.width;
-				states->surface_height = xev.xresizerequest.height;
-				myy_display_initialised(
-					states,
-					xev.xresizerequest.width,
-					xev.xresizerequest.height);
+				event_type = myy_input_event_surface_size_changed;
+				data.surface.width  = xev.xresizerequest.width;
+				data.surface.height = xev.xresizerequest.height;
 				break;
 			case FocusIn:
+				event_type = myy_input_event_window_focus_in;
 				LOG("FocusIN\n");
 				break;
 			case FocusOut:
+				event_type = myy_input_event_window_focus_out;
 				LOG("FocusOUT\n");
 				break;
 			case ButtonPress:
-				;
-				/* Definitions after a label borks C.
-				 * Note that it also breaks with goto labels so...
-				 * It's a C thing.
-				 */
-				unsigned int const x      = xev.xbutton.x;
-				unsigned int const y      = xev.xbutton.y;
-				unsigned int const button = xev.xbutton.button;
-				unsigned long click_time  = xev.xbutton.time;
-
-				myy_click(states, x, y, button);
-
-				break;
 			case ButtonRelease:
+				event_type = 
+					(xev.type == ButtonPress)
+					? myy_input_event_mouse_button_pressed
+					: myy_input_event_mouse_button_released;
+
+				data.mouse_button.x     = xev.xbutton.x;
+				data.mouse_button.y     = xev.xbutton.y;
+				data.mouse_button.index = 0;
+				data.mouse_button.state = 0;
+				data.mouse_button.button_number = xev.xbutton.button;
 				break;
 			case MotionNotify:
-				myy_hover(states, xev.xmotion.x, xev.xmotion.y);
+				event_type = myy_input_event_mouse_moved_absolute;
+				data.mouse_move_absolute.x = xev.xmotion.x;
+				data.mouse_move_absolute.y = xev.xmotion.y;
+				data.mouse_move_absolute.index = 0;
+				data.mouse_move_absolute.type  = 1;
 				break;
 			case KeyPress:
 				//myy_key(xev.xkey.keycode);
@@ -496,22 +500,56 @@ void ParseEvents(
 				int len = Xutf8LookupString(
 					xlib_state->xic, &xev.xkey,
 					xlib_state->compose_buffer,
-					4095,
+					4094,
 					&keysym, &lookup_status);
+				xlib_state->compose_buffer[len] = 0;
 				LOG("lookup_status : %d\n", lookup_status);
 
-				if (len > 0)
-					myy_text(states, xlib_state->compose_buffer, len);
+				switch(lookup_status) {
+					case XBufferOverflow: break;
+					case XLookupNone: break;
+					case XLookupChars:
+						event_type = myy_input_event_text_received;
+						data.text.data   = xlib_state->compose_buffer;
+						data.text.length = len;
+						break;
+					case XLookupKeySym:
+						event_type         = myy_input_event_keyboard_key_pressed;
+						data.key.raw_code  = xev.xkey.keycode-8;
+						data.key.modifiers = 0;
+						data.key.state     = 0;
+						myy_input(states, event_type, &data);
 
+						event_type         = myy_input_event_keyboard_key_released;
+						data.key.state     = 1;
+						break;
+					case XLookupBoth:
+						event_type = myy_input_event_text_received;
+						data.text.data   = xlib_state->compose_buffer;
+						data.text.length = len;
+						myy_input(states, event_type, &data);
+
+						event_type         = myy_input_event_keyboard_key_pressed;
+						data.key.raw_code  = xev.xkey.keycode-8;
+						data.key.modifiers = 0;
+						data.key.state     = 0;
+						myy_input(states, event_type, &data);
+						break;
+				}
 				break;
 			case KeyRelease:
-				myy_key_release(states, xev.xkey.keycode);
+				event_type         = myy_input_event_keyboard_key_released;
+				data.key.raw_code  = xev.xkey.keycode-8;
+				data.key.modifiers = 0;
+				data.key.state     = 1;
 				break;
 			case DestroyNotify:
 			case UnmapNotify:
+				event_type = myy_input_event_window_destroyed;
 				LOG("Blargh !");
 				break;
 		}
+		myy_input(states, event_type, &data);
 	}
 
 }

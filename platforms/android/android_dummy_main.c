@@ -66,8 +66,6 @@ AAssetManager *myy_assets_manager;
 /* TODO REMOVE THIS SHIT ! */
 struct android_app * ugly_pointer = NULL;
 
-myy_vector_template(utf8, uint8_t)
-
 myy_vector_utf8 received_string;
 
 void myy_editor_finished(
@@ -202,9 +200,7 @@ uintreg_t animating;
 /**
  * Process the next input event.
  */
-unsigned long last_tap = 0;
-int16_t start_x = 0, start_y = 0;
-uint64_t flags = 0;
+static uint64_t flags = 0;
 static int32_t engine_handle_input(
 	struct android_app * const app,
 	AInputEvent * const event)
@@ -212,22 +208,52 @@ static int32_t engine_handle_input(
 	if (flags) return 0;
 	myy_states * __restrict const states =
 		app->userData;
-	unsigned int const action = AMotionEvent_getAction(event);
+	enum myy_input_events myy_event_type = myy_input_event_invalid;
+	union myy_input_event_data myy_event;
 
-	//unsigned long const tap_time = AMotionEvent_getEventTime(event);
-	int const x = AMotionEvent_getX(event, 0);
-	int const y = AMotionEvent_getY(event, 0);
+	int32_t event_type = AInputEvent_getType(event);
 
-	switch(action) {
-	case AMOTION_EVENT_ACTION_DOWN:
-		myy_click(states, x, y, 1);
-		break;
-	case AMOTION_EVENT_ACTION_MOVE:
-		myy_hover(states, x, y);
-		break;
-	default:
-		return 0;
+	/* TODO So much things to handle, so little time */
+	switch(event_type) {
+		case AINPUT_EVENT_TYPE_KEY: return 0;
+		case AINPUT_EVENT_TYPE_MOTION:
+			;
+			int32_t const action =
+				AMotionEvent_getAction(event);
+			int32_t const pointer_i =
+				action >> AMOTION_EVENT_ACTION_POINTER_INDEX_SHIFT;
+			switch(action) {
+				case AMOTION_EVENT_ACTION_DOWN:
+				case AMOTION_EVENT_ACTION_MOVE:
+				case AMOTION_EVENT_ACTION_UP:
+				case AMOTION_EVENT_ACTION_CANCEL:
+				case AMOTION_EVENT_ACTION_POINTER_DOWN:
+				case AMOTION_EVENT_ACTION_POINTER_UP:
+					/* TODO See if there's a better way to refactorize */
+					if ((action == AMOTION_EVENT_ACTION_UP)
+						| (action == AMOTION_EVENT_ACTION_CANCEL)
+						| (action == AMOTION_EVENT_ACTION_POINTER_UP))
+						myy_event_type = myy_input_event_touch_released;
+					else if (action == AMOTION_EVENT_ACTION_MOVE)
+						myy_event_type = myy_input_event_touch_move;
+					else
+						myy_event_type = myy_input_event_touch_pressed;
+					myy_event.touch.x = AMotionEvent_getX(event, pointer_i);
+					myy_event.touch.y = AMotionEvent_getY(event, pointer_i);
+					myy_event.touch.move = 
+						(action == AMOTION_EVENT_ACTION_MOVE);
+					myy_event.touch.state =
+						((action == AMOTION_EVENT_ACTION_UP)
+						 | (action ==AMOTION_EVENT_ACTION_POINTER_UP))
+						| ((action == AMOTION_EVENT_ACTION_CANCEL) << 1);
+					myy_event.touch.id =
+						AMotionEvent_getPointerId(event, pointer_i);
+					break;
+				default:
+					return 0;
+			}
 	}
+	myy_input(states, myy_event_type, &myy_event);
 
 	return 1;
 }
@@ -245,59 +271,75 @@ static void engine_handle_cmd(
 	struct egl_elements *e = &egl;
 	myy_states * __restrict const states =
 		app->userData;
-	
+	enum myy_input_events myy_event_type =
+		myy_input_event_invalid;
+	union myy_input_event_data myy_event;
+	int animating = *app->animating;
 	switch (cmd) {
 	case APP_CMD_INIT_WINDOW:
 		LOGW("======================================");
 		LOGW("========= Initialising window");
-		if (app->window != NULL)
-			add_egl_context_to(app->window, e, &current_android_window);
+		if (app->window != NULL) {
+			int ret = add_egl_context_to(
+				app->window, e, &current_android_window);
+			if (ret < 0) myy_stop(states);
+		}
+
 		myy_init_drawing(states,
 			current_android_window.width,
 			current_android_window.height);
-		myy_display_initialised(
-			states,
-			current_android_window.width,
-			current_android_window.height);
-		*app->animating = 1;
+
+		myy_event_type = myy_input_event_surface_size_changed;
+		myy_event.surface.width  = current_android_window.width;
+		myy_event.surface.height = current_android_window.height;
+
+		animating = 1;
 		break;
 	case APP_CMD_WINDOW_RESIZED:
 		LOGW("========= Resizing !");
 		*app->animating = 0;
 		egl_stop(e);
 		add_egl_context_to(app->window, e, &current_android_window);
-		*app->animating = 1;
+
+		myy_event_type = myy_input_event_surface_size_changed;
+		myy_event.surface.width  = current_android_window.width;
+		myy_event.surface.height = current_android_window.height;
+		animating = 1;
 	case APP_CMD_RESUME:
 		LOGW("========= Resuming !");
-		myy_android_activity = app->activity;
-		myy_resume_state(states, states->game_state);
+		myy_event_type = myy_input_event_android_state;
+		myy_event.android.state = myy_android_state_resume;
 		break;
 	case APP_CMD_PAUSE:
 		LOGW("========= Pause !");
-		*app->animating = 0;
-		myy_save_state(states, states->game_state);
+		animating = 0;
+		myy_event_type = myy_input_event_android_state;
+		myy_event.android.state = myy_android_state_pause;
 		break;
 	case APP_CMD_STOP:
-		myy_stop(states->game_state);
+		myy_event_type = myy_input_event_android_state;
+		myy_event.android.state = myy_android_state_stop;
 		break;
 	case APP_CMD_SAVE_STATE:
 		LOGW("========= State saved !");
-		myy_save_state(states, states->game_state);
+		myy_event_type = myy_input_event_android_state;
+		myy_event.android.state = myy_android_state_force_save;
 		break;
 	case APP_CMD_TERM_WINDOW:
 		LOGW("========= Terminated !");
-		myy_cleanup_drawing(states);
-		myy_stop(states);
+		myy_event_type = myy_input_event_window_destroyed;
 		egl_stop(e);
 	case MYY_APP_CMD_EDITOR_SENT_TEXT:
-		myy_editor_finished(
-			states,
-			myy_vector_utf8_data(&received_string),
-			myy_vector_utf8_length(&received_string));
+		myy_event_type = myy_input_event_text_received;
+		myy_event.text.data = myy_vector_utf8_data(&received_string);
+		myy_event.text.length = myy_vector_utf8_length(&received_string);
+
 		flags = 0;
 		break;
 	}
 
+	myy_input(states, myy_event_type, &myy_event);
+	*app->animating = animating;
 }
 
 /* Got to love the JNI taxonomy :

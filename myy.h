@@ -40,6 +40,91 @@
 #include <myy/helpers/fonts/packed_fonts_display.h>
 #include <myy/helpers/hitbox_action.h>
 
+#include <myy/helpers/strings.h>
+
+enum myy_input_events {
+	myy_input_event_invalid,
+	myy_input_event_mouse_moved_absolute,
+	myy_input_event_mouse_moved_relative,
+	myy_input_event_mouse_button_pressed,
+	myy_input_event_mouse_button_released,
+	myy_input_event_touch_pressed,
+	myy_input_event_touch_move,
+	myy_input_event_touch_released,
+	myy_input_event_keyboard_key_pressed,
+	myy_input_event_keyboard_key_released,
+	myy_input_event_text_received,
+	myy_input_event_surface_size_changed,
+	myy_input_event_window_destroyed,
+	myy_input_event_window_focus_in,
+	myy_input_event_window_focus_out,
+	myy_input_event_android_state,
+};
+
+enum myy_android_state {
+	myy_android_state_invalid,
+	myy_android_state_start,
+	myy_android_state_resume,
+	myy_android_state_pause,
+	myy_android_state_stop,
+	myy_android_state_force_load,
+	myy_android_state_force_save,
+};
+
+union myy_input_event_data {
+	struct {
+		int16_t x, y;
+		uint8_t index; // For multi peripherals event
+		uint8_t type;  // 0: relative, 1: absolute
+	} mouse_move_relative;
+	struct {
+		int16_t x, y;
+		uint8_t index;
+		uint8_t type;
+	} mouse_move_absolute;
+	struct {
+		/* Turns out that you can release the mouse outside the window,
+		 * in which case x and/or y could be negative.
+		 */
+		int16_t x, y;
+		uint8_t index;
+		// TODO That generates an useless write, it seems.
+		uint8_t state; // 0: pressed, 1: released
+		uint8_t button_number;
+		uint8_t unused[3]; // align on 4 bytes
+	} mouse_button;
+	struct {
+		uint16_t x, y;
+		uint8_t state; // 0: pressed, 1: released, 3: released and canceled
+		uint8_t move;  // 0: Just a press, 1: Move action
+		int32_t id;
+
+	} touch;
+	struct {
+		uint32_t raw_code;
+		uint32_t modifiers;
+		uint8_t state;
+		uint8_t unused[7]; // align on 8 bytes
+	} key;
+	struct {
+		char const * __restrict data;
+		size_t length;
+	} text;
+	struct {
+		uint16_t width, height;
+		uint8_t unused[4];
+	} surface;
+	struct {
+		uint8_t unused[8];
+	} window_destroyed;
+	struct {
+		uint8_t unused[8];
+	} window_focus;
+	struct {
+		enum myy_android_state state;
+	} android;
+};
+
 struct myy_states_s {
 	void * user_state;
 	uint32_t surface_width, surface_height;
@@ -108,43 +193,10 @@ void myy_resume_state(
 	myy_states * __restrict state,
 	void * game_state);
 
-void myy_click(
+void myy_input(
 	myy_states * __restrict state,
-	int x,
-	int y,
-	unsigned int button);
-void myy_doubleclick(
-	myy_states * __restrict state,
-	int x,
-	int y,
-	unsigned int button);
-void myy_hover(
-	myy_states * __restrict state,
-	int x,
-	int y);
-void myy_move(
-	myy_states * __restrict state,
-	int x, int y,
-	int start_x, int start_y);
-void myy_key(
-	myy_states * __restrict state,
-	unsigned int keycode);
-void myy_key_release(
-	myy_states * __restrict state,
-	unsigned int keycode);
-void myy_text(
-	myy_states * __restrict state,
-	char const * __restrict const text,
-	size_t const text_size);
-
-/* Temporary changes */
-enum mouse_action_type { myy_mouse_wheel_action };
-
-void myy_rel_mouse_move(myy_states * __restrict state, int x, int y);
-void myy_mouse_action(
-	myy_states * __restrict state,
-	enum mouse_action_type,
-	int value);
+	enum myy_input_events const event_type,
+	union myy_input_event_data * __restrict const event);
 
 void myy_text_input_start(myy_states * __restrict state);
 void myy_text_input_stop(myy_states * __restrict state);

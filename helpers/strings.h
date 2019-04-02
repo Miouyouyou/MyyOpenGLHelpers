@@ -27,6 +27,9 @@
 #define MYY_HELPERS_STRING_H 1
 #define sh_pointToNextString(contiguous_strings) while (*contiguous_strings++)
 #include <stdint.h>
+#include <myy/helpers/vector.h>
+
+myy_vector_template(utf8, uint8_t)
 
 /**
  * Store the UTF-8 sequence corresponding to the provided UTF-32

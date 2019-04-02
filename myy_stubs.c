@@ -50,18 +50,6 @@ void weak_function myy_draw_after(
 	uint64_t last_frame_delta_ns) 
 {}
 
-void weak_function myy_rel_mouse_move(
-	myy_states * __restrict const states,
-	int x, int y)
-{}
-
-void weak_function myy_mouse_action(
-	myy_states * __restrict const states,
-	enum mouse_action_type type,
-	int value)
-{
-}
-
 void weak_function myy_save_state(
 	myy_states * __restrict const states,
 	void * const save_state)
@@ -78,45 +66,44 @@ void weak_function myy_cleanup_drawing(
 
 void weak_function myy_stop(myy_states * __restrict const states) {}
 
-void weak_function myy_click(
-	myy_states * __restrict const states,
-	int x, int y, unsigned int button)
-{}
-
-void weak_function myy_doubleclick(
-	myy_states * __restrict const states,
-	int x, int y, unsigned int button)
-{}
-
-void weak_function myy_move(
-	myy_states * __restrict const states,
-	int x, int y,
-	int start_x, int start_y)
-{}
-
-void weak_function myy_hover(
-	myy_states * __restrict const states, int x, int y)
-{}
-
-void weak_function myy_key(
-	myy_states * __restrict const states,
-	unsigned int keycode)
-{}
-
-void weak_function myy_key_release(
-	myy_states * __restrict const states,
-	unsigned int keycode)
-{}
-
-void weak_function myy_text(
-	myy_states * __restrict const states,
-	char const * __restrict const text,
-	size_t const text_size)
-{}
-
 void weak_function myy_text_input_start(
 	myy_states * __restrict state)
 {}
 void weak_function myy_text_input_stop(
 	myy_states * __restrict state)
 {}
+
+
+void weak_function myy_input(
+	myy_states * __restrict state,
+	enum myy_input_events const event_type,
+	union myy_input_event_data * __restrict const event)
+{
+	switch(event_type) {
+		case myy_input_event_invalid:
+		case myy_input_event_mouse_moved_absolute:
+		case myy_input_event_mouse_moved_relative:
+		case myy_input_event_mouse_button_pressed:
+		case myy_input_event_mouse_button_released:
+		case myy_input_event_touch_pressed:
+		case myy_input_event_touch_released:
+		case myy_input_event_keyboard_key_released:
+			break;
+		case myy_input_event_keyboard_key_pressed:
+			LOG("KEY: %d\n", event->key.raw_code);
+			if (event->key.raw_code == 1) { myy_user_quit(state); }
+			break;
+		case myy_input_event_text_received:
+			LOG("TEXT: %s\n", event->text.data);
+			break;
+		case myy_input_event_surface_size_changed:
+			myy_display_initialised(
+				state, event->surface.width, event->surface.height);
+			break;
+		case myy_input_event_window_destroyed:
+			myy_user_quit(state);
+			break;
+		default:
+			break;
+	}
+}

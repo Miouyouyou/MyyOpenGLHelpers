@@ -47,14 +47,18 @@ enum myy_eglstatus {
 };
 
 static char const * const myy_eglerrors[myy_eglstatus_n] = {
-	[myy_eglstatus_no_problem] = "Everything OK with EGL !",
-	[myy_eglstatus_eglGetDisplay] = "Could not GetDisplay",
-	[myy_eglstatus_eglInitialize] = "Could not initialize EGL",
+	[myy_eglstatus_no_problem] =
+		"Everything OK with EGL !",
+	[myy_eglstatus_eglGetDisplay] =
+		"Could not GetDisplay",
+	[myy_eglstatus_eglInitialize] =
+		"Could not initialize EGL",
 	[myy_eglstatus_eglGetConfigs] =
 		"Could not retrieve EGL configurations",
 	[myy_eglstatus_eglChooseConfig] =
 		"Could not choose an EGL configuration",
-	[myy_eglstatus_eglBindAPI] = "Could not bind the API",
+	[myy_eglstatus_eglBindAPI] =
+		"Could not bind the API",
 	[myy_eglstatus_eglCreateWindowSurface] =
 		"Could not create an EGL Window surface",
 	[myy_eglstatus_eglCreateContext] =
