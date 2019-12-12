@@ -13,8 +13,7 @@ typedef uint32_t uintreg_t;
 
 #ifndef __cplusplus
 
-enum bool_type { false, true };
-typedef uintreg_t bool;
+#include <stdbool.h>
 
 #endif /* __cplusplus */
 
