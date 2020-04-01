@@ -3,7 +3,6 @@
 
 #include <stdbool.h>
 
-
 bool myy_text_edit_module_init(
 	struct myy_text_edit_module * __restrict const text_edit_module)
 {
@@ -134,5 +133,3 @@ bool myy_text_edit_module_add_text(
 
 	return added;
 }
-
-
