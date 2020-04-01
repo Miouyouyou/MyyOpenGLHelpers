@@ -25,7 +25,11 @@
 #include <inttypes.h>
 
 #define ALIGN_ON_POW2(x, p) ((x)+(p-1) & ~(p-1))
+#define MYY_DEFAULT_VECTOR_SIZE (64)
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 /* Because Android is too fucking stupid to provide
  * a real implementation of aligned_alloc in its stdlib.
  */
@@ -46,6 +50,9 @@ void * weak_function aligned_alloc(
 	else
 		return (void *) 0;
 }
+#ifdef __cplusplus
+}
+#endif
 
 struct myy_vector {
 	uintptr_t begin;
@@ -55,6 +62,9 @@ struct myy_vector {
 
 typedef struct myy_vector myy_vector_t;
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 static inline bool myy_vector_can_add(
 	struct myy_vector const * __restrict const vector,
 	size_t const n_octets)
@@ -94,7 +104,9 @@ static inline bool myy_vector_expand_to_store_at_least(
 	size_t const vector_size     =
 		myy_vector_allocated_total(vector);
 	size_t const new_vector_size =
-		ALIGN_ON_POW2((vector_size + n_octets), 4096);
+		ALIGN_ON_POW2(
+			(vector_size + n_octets),
+			MYY_DEFAULT_VECTOR_SIZE);
 	size_t const vector_last_offset =
 		myy_vector_allocated_used(vector);
 	uintptr_t new_begin = (uintptr_t) realloc(
@@ -110,6 +122,15 @@ static inline bool myy_vector_expand_to_store_at_least(
 	}
 
 	return success;
+}
+
+static inline bool myy_vector_ensure_enough_space_for(
+	struct myy_vector * const vector,
+	size_t const n_octets)
+{
+	return 
+		myy_vector_can_add(vector, n_octets) ||
+		myy_vector_expand_to_store_at_least(vector, n_octets);
 }
 
 bool myy_vector_add(
@@ -155,6 +176,21 @@ static inline void myy_vector_inspect(
 		vector->begin, vector->tail, vector->end);
 }
 
+static inline bool myy_vector_force_length_to(
+	struct myy_vector * __restrict const vector,
+	size_t const size)
+{
+	bool const got_enough_space =
+		myy_vector_ensure_enough_space_for(vector, size);
+	if (got_enough_space)
+		vector->tail = (uintptr_t) (vector->begin + size);
+	return got_enough_space;
+}
+
+#ifdef __cplusplus
+}
+#endif
+
 /**
  * Move the all the content, starting from "index", to the new
  * index.
@@ -179,20 +215,20 @@ static inline void myy_vector_inspect(
 
 #define myy_vector_for_each(vector, T, name, ...) {\
 	T const * __restrict _cursor =         \
-		(T * __restrict) vector->begin;   \
+		(T * __restrict) ((vector)->begin);   \
 	T const * __restrict const _end =            \
-		(T * __restrict) vector->tail;     \
+		(T * __restrict) ((vector)->tail);     \
 	while(_cursor < _end) {\
 		T const name = *_cursor++; \
 		__VA_ARGS__\
 	}\
 }\
 
-#define myy_vector_for_each_ptr(vector, T, name, ...) {\
+#define myy_vector_for_each_ptr(T, name, ignored_word, vector, ...) {\
 	T * __restrict _cursor =         \
-		(T * __restrict) vector->begin;   \
+		(T * __restrict) ((vector)->begin);   \
 	T const * __restrict const _end =            \
-		(T * __restrict) vector->tail;     \
+		(T * __restrict) ((vector)->tail);     \
 	while(_cursor < _end) {\
 		T * __restrict const name = _cursor; \
 		_cursor++; \
@@ -275,6 +311,16 @@ static inline void myy_vector_inspect(
 	}                                                                              \
                                                                                    \
 	__attribute__((unused))                                                        \
+	static inline bool myy_vector_##suffix##_ensure_enough_space_for(              \
+		myy_vector_##suffix * __restrict const vector,                             \
+		size_t const n_elements)                                                   \
+	{                                                                              \
+		return myy_vector_ensure_enough_space_for(                                 \
+			((struct myy_vector *) vector),                                        \
+			n_elements * sizeof(T));                                               \
+	}                                                                              \
+                                                                                   \
+	__attribute__((unused))                                                        \
 	static inline bool myy_vector_##suffix##_add(                                  \
 		myy_vector_##suffix  * __restrict const vector,                            \
 		size_t const n_elements,                                                   \
@@ -287,14 +333,31 @@ static inline void myy_vector_inspect(
 	}                                                                              \
                                                                                    \
 	__attribute__((unused))                                                        \
+	static inline bool myy_vector_##suffix##_add_empty(                            \
+		myy_vector_##suffix * __restrict const vector,                             \
+		size_t const n_elements)                                                   \
+	{                                                                              \
+		bool const enough_space =                                                  \
+			myy_vector_##suffix##_ensure_enough_space_for(vector, n_elements);     \
+		if (enough_space) {                                                        \
+			vector->tail += (n_elements * sizeof(T));                              \
+		}                                                                          \
+		return enough_space;                                                       \
+	}                                                                              \
+                                                                                   \
+	__attribute__((unused))                                                        \
 	static inline myy_vector_##suffix  myy_vector_##suffix##_init(                 \
 		size_t n_elements)                                                         \
 	{                                                                              \
 		myy_vector_##suffix vector;                                                \
                                                                                    \
-		size_t allocated_size = ALIGN_ON_POW2(n_elements * sizeof(T), 4096);       \
+		size_t const asked_size =                                                  \
+			ALIGN_ON_POW2(n_elements * sizeof(T), 64);                             \
+		size_t const allocated_size =                                              \
+			(asked_size > 64 ? asked_size : 64);                                   \
+		LOG("Allocated_size : %zu\n", allocated_size);                               \
 		uintptr_t const begin =                                                    \
-			(uintptr_t) (aligned_alloc(4096, allocated_size));                     \
+			(uintptr_t) (aligned_alloc(64, allocated_size));                       \
 		memset((void *) begin, 0, allocated_size);                                 \
 		vector.begin = begin;                                                      \
 		vector.tail  = begin;                                                      \
@@ -353,7 +416,7 @@ static inline void myy_vector_inspect(
 	}                                                                              \
                                                                                    \
 	__attribute__((unused))                                                        \
-	static inline T * myy_vector_##suffix##_ptr_at(                                \
+	static inline T * myy_vector_##suffix##_at_ptr(                                \
 		myy_vector_##suffix  * __restrict const vector,                            \
 		size_t const index)                                                        \
 	{                                                                              \
@@ -387,17 +450,14 @@ static inline void myy_vector_inspect(
 		/* and fail myy_vector_T_can_add even though we      */                    \
 		/* CLEARLY have enough space in that case.           */                    \
                                                                                    \
-		bool ret = true;                                                           \
 		if (to > from                                                              \
 		    && !myy_vector_##suffix##_can_add(vector, to - from)                   \
 			&& !myy_vector_##suffix##_expand_to_store_at_least(vector, to - from)) \
-		{                                                                          \
-			ret = false;                                                           \
-			goto out;                                                              \
-		}                                                                          \
+			return false;                                                          \
                                                                                    \
-		T * const from_address = myy_vector_##suffix##_ptr_at(vector, from);       \
-		T * const to_address   = myy_vector_##suffix##_ptr_at(vector, to);         \
+                                                                                   \
+		T * const from_address = myy_vector_##suffix##_at_ptr(vector, from);       \
+		T * const to_address   = myy_vector_##suffix##_at_ptr(vector, to);         \
 		size_t const n_bytes   =                                                   \
 			(size_t)                                                               \
 			( vector->tail - ((uintptr_t) from_address) );                         \
@@ -407,8 +467,7 @@ static inline void myy_vector_inspect(
 		/* Readjust the end of the vector */                                       \
 		vector->tail = ((uintptr_t) to_address) + n_bytes;                         \
                                                                                    \
-	out:                                                                           \
-		return ret;                                                                \
+		return true;                                                               \
 	}                                                                              \
                                                                                    \
 	__attribute__((unused))                                                        \
@@ -425,11 +484,92 @@ static inline void myy_vector_inspect(
                                                                                    \
 		if (can_write)                                                             \
 			memcpy(                                                                \
-				myy_vector_##suffix##_ptr_at(vector, from),                        \
+				myy_vector_##suffix##_at_ptr(vector, from),                        \
 				new_elements,                                                      \
 				n_new_elements * sizeof(T));                                       \
                                                                                    \
 		return can_write;                                                          \
-	}
+	}                                                                              \
+                                                                                   \
+	__attribute__((unused))                                                        \
+	static inline bool myy_vector_##suffix##_delete(                               \
+		myy_vector_##suffix * __restrict const vector,                             \
+		size_t const index)                                                        \
+	{                                                                              \
+		return myy_vector_##suffix##_shift_from(vector, index+1, index);           \
+	}                                                                              \
+	__attribute__((unused))                                                        \
+	static inline T * myy_vector_##suffix##_last(                                  \
+		myy_vector_##suffix * __restrict const vector)                             \
+	{                                                                              \
+		size_t const length =                                                      \
+			myy_vector_##suffix##_length(vector);                                  \
+		if (length > 0) {                                                          \
+			return                                                                 \
+				myy_vector_##suffix##_at_ptr(vector, length - 1);                  \
+		}                                                                          \
+		else return NULL;                                                          \
+	}                                                                              \
+	                                                                               \
+	__attribute__((unused))                                                        \
+	static inline T * myy_vector_##suffix##_tail_ptr(                              \
+		myy_vector_##suffix * __restrict const vector)                             \
+	{                                                                              \
+		size_t const length =                                                      \
+			myy_vector_##suffix##_length(vector);                                  \
+		return                                                                     \
+			myy_vector_##suffix##_at_ptr(vector, length);                          \
+	}                                                                              \
+	__attribute__((unused))                                                        \
+	static inline bool myy_vector_##suffix##_delete_if(                            \
+		myy_vector_##suffix * __restrict const vector,                             \
+		T const * __restrict const b,                                              \
+		bool (*predicate)(                                                         \
+			T const * __restrict const a,                                          \
+			T const * __restrict const b))                                         \
+	{                                                                              \
+		size_t current_length =                                                    \
+			myy_vector_##suffix##_length(vector);                                  \
+		T * __restrict const data = myy_vector_##suffix##_data(vector);            \
+		bool deleted_any = false;                                                  \
+		for (size_t i = 0; i < current_length; i++) {                              \
+			T * __restrict const a = data+i;                                       \
+			bool const should_delete = predicate(a,b);                             \
+			deleted_any |= should_delete;                                          \
+			if (should_delete) {                                                   \
+				myy_vector_##suffix##_delete(vector, i);                           \
+				i--; /* Restart from the same index on the next iteration */       \
+				current_length--;                                                  \
+				deleted_any = true;                                                \
+			}                                                                      \
+			                                                                       \
+		}                                                                          \
+		return deleted_any;                                                        \
+	}                                                                              \
+                                                                                   \
+	__attribute__((unused))                                                        \
+	static inline void myy_vector_##suffix##_for_each(                             \
+		myy_vector_##suffix * __restrict const vector,                             \
+		void (*action)(T *))                                                       \
+	{                                                                              \
+		T * __restrict cursor =                                                    \
+			myy_vector_##suffix##_data(vector);                                    \
+		T const * __restrict const end =                                           \
+			(T const * __restrict) (vector->tail);                                 \
+		while (cursor < end) {                                                     \
+			action(cursor);                                                        \
+			cursor++;                                                              \
+		}                                                                          \
+	}                                                                              \
+	                                                                               \
+	__attribute__((unused))                                                        \
+	static inline bool myy_vector_##suffix##_force_length_to(                      \
+		myy_vector_##suffix * __restrict const vector,                             \
+		size_t const n_elements)                                                   \
+	{                                                                              \
+		return myy_vector_force_length_to(                                         \
+			(struct myy_vector *) vector,                                          \
+			n_elements * sizeof(T));                                               \
+	}                                                                              \
 
 #endif

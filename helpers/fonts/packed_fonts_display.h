@@ -5,6 +5,7 @@
 #include <myy/helpers/fonts/packed_fonts_parser.h>
 #include <myy/helpers/position.h>
 #include <myy/helpers/buffers.h>
+#include <myy/helpers/colors.h>
 
 enum myy_text_line_flow {
 	line_left_to_right,
@@ -20,18 +21,49 @@ enum myy_text_block_flow {
 	block_bottom_to_top
 };
 
+__attribute__((unused))
+static inline uint16_t myy_text_flow(
+	enum myy_text_block_flow const vertical,
+	enum myy_text_block_flow const horizontal)
+{
+	return (uint16_t) ((vertical & 0xff) << 8) | (horizontal & 0xff);
+}
+
+__attribute__((unused))
+static inline uint16_t myy_text_flow_occidental(void) {
+	return myy_text_flow(block_top_to_bottom, block_left_to_right);
+}
+
 struct myy_text_properties {
-	int32_t myy_text_flows;
-	int32_t z_layer;
+	uint16_t myy_text_flows;
+	uint16_t z_layer;
 	uint8_t r,g,b,a;
 	void * user_metadata;
 };
 
+typedef struct myy_text_properties myy_text_props_t;
+
 /* WARNING Currently broken */
-int16_t myy_glyph_to_twotris_quad_window_coords(
-	struct gl_text_infos const * __restrict const gl_text_infos,
-	uint32_t const codepoint,
-	position_S const text_pos);
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+__attribute__((unused))
+static inline myy_text_props_t myy_text_props_layered_color(
+	uint16_t const layer,
+	rgba8_t const color)
+{
+	myy_text_props_t const default_props = {
+		.myy_text_flows = myy_text_flow_occidental(),
+		.z_layer = layer,
+		.r = color.r,
+		.g = color.g,
+		.b = color.b, 
+		.a = color.a,
+		.user_metadata = (void *) 0
+	};
+	return default_props;
+}
 
 int16_t myy_glyph_to_quad_window_coords(
 	struct gl_text_infos const * __restrict const gl_text_infos,
@@ -76,4 +108,7 @@ void myy_gl_text_infos_chars_to_quads(
 		struct myy_text_properties const * __restrict const metadata),
 	void * deal_with_generated_quads_user_arg);
 
+#ifdef __cplusplus
+}
+#endif
 #endif

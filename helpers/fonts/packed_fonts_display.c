@@ -17,49 +17,6 @@ static unsigned int find_codepoint_in(
 }
 
 
-/* WARNING Currently broken */
-int16_t myy_glyph_to_twotris_quad_window_coords(
-	struct gl_text_infos const * __restrict const gl_text_infos,
-	uint32_t const codepoint,
-	position_S const text_pos)
-{
-
-	int16_t new_x = text_pos.x;
-
-	uint32_t const * __restrict const codepoints =
-	  gl_text_infos->codepoints_addr;
-
-	unsigned int codepoint_index =
-	  find_codepoint_in(codepoints, codepoint);
-	if (codepoint_index) {
-		struct myy_packed_fonts_glyphdata const * __restrict const glyphdata =
-		  gl_text_infos->glyphdata_addr+codepoint_index;
-
-		int16_t glyph_x_offset_px =
-			glyphdata->offset_x_px + new_x;
-		int16_t glyph_y_offset_px =
-			glyphdata->offset_y_px;
-		int16_t right_px =
-			glyphdata->width_px  + glyph_x_offset_px;
-		int16_t up_px =
-			glyphdata->height_px + glyph_y_offset_px;
-		int16_t advance_x =
-			new_x + glyphdata->advance_x_px;
-
-		uint16_t const
-		  left  = glyph_x_offset_px,
-		  right = right_px,
-		  down  = glyph_y_offset_px,
-		  up    = up_px,
-		  tex_left  = glyphdata->tex_left,
-		  tex_right = glyphdata->tex_right,
-		  tex_up    = glyphdata->tex_top,
-		  tex_down  = glyphdata->tex_bottom;
-
-		return advance_x;
-	}
-	return new_x;
-}
 
 static void print_codepoint_and_metadata(
 	struct myy_packed_fonts_glyphdata const * __restrict const glyphs,
@@ -126,6 +83,8 @@ int16_t myy_glyph_to_quad_window_coords(
 
 		int16_t const glyph_x_offset_px =
 			new_x + glyphdata->offset_x_px;
+		/* FIXME offset_y_px is computed to
+		 * generate a double negative here... Ugh... */
 		int16_t const glyph_y_offset_px =
 			text_pos.y - glyphdata->offset_y_px;
 		int16_t const right_px =
@@ -220,6 +179,7 @@ void myy_string_to_quads(
 		myy_vector_quads_data(quads),
 		myy_vector_quads_length(quads),
 		current_metadata);
+	*draw_at_px = current_pos_px;
 }
 
 void myy_gl_text_infos_chars_to_quads(

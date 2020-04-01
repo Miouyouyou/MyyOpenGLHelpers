@@ -11,6 +11,7 @@ set (MyyCommonHelpers
 	myy/helpers/matrices.c
 	myy/helpers/memory.c
 	myy/helpers/strings.c
+	myy/helpers/temp_string.c
 	myy/helpers/vector.c)
 set (MyyLinuxHelpers
 	myy/platforms/linux/common/helpers/file.c
@@ -32,6 +33,7 @@ set (MyyHelpersHeaders
 	myy/helpers/memory.h
 	myy/helpers/strings.h
 	myy/helpers/struct.h
+	myy/helpers/temp_string.h
 	myy/helpers/vector.h)
 
 add_custom_target(MyyHeaders SOURCES ${MyyHelpersHeaders})

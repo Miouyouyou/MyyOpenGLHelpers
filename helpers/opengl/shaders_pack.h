@@ -121,6 +121,9 @@ struct uniforms_metadata {
 	struct uniform_metadata uniform[];
 };
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 GLuint myy_shaders_pack_compile_program(
 	char    const * __restrict program_name,
 	struct program_definition_header const * __restrict const header,
@@ -140,5 +143,8 @@ GLuint myy_shaders_pack_load_program(
 	uint8_t       * __restrict const data_structure,
 	char    const * __restrict const program_name,
 	size_t  const program_name_size);
+#ifdef __cplusplus
+}
+#endif
 
 #endif

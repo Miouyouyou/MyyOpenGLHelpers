@@ -37,11 +37,14 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <stddef.h>
+#include <stdbool.h>
 
 #include <myy/myy.h>
 #include <myy/current/opengl.h>
 #include <myy/helpers/macros.h>
 #include <myy/helpers/vector.h>
+
+#include "myy_user_state.h"
 
 #ifdef DEBUG
 #define LOGI(...) ((void)__android_log_print(ANDROID_LOG_INFO, "native-activity", __VA_ARGS__))
@@ -64,13 +67,20 @@ static struct current_window {
 AAssetManager *myy_assets_manager;
 
 /* TODO REMOVE THIS SHIT ! */
-struct android_app * ugly_pointer = NULL;
+static struct android_app * ugly_pointer = NULL;
 
-myy_vector_utf8 received_string;
+static myy_vector_utf8 received_string;
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 void myy_editor_finished(
 	myy_states * __restrict const states,
-	uint8_t const * __restrict const array, size_t array_length);
+	uint8_t const * __restrict const array,
+	size_t array_length);
+
+
 static void android_app_write_cmd(struct android_app* android_app, int8_t cmd) {
     if (write(android_app->msgwrite, &cmd, sizeof(cmd)) != sizeof(cmd)) {
         LOGW("Failure writing android_app cmd: %s\n", strerror(errno));
@@ -86,21 +96,34 @@ static void android_app_write_cmd(struct android_app* android_app, int8_t cmd) {
 void Java_com_miouyouyou_gametests_NativeInsanity_myyTextInputStopped(
 	JNIEnv * __restrict const jni,
 	jobject object,
-	jbyteArray provided_string)
+	jbyteArray provided_string,
+	jlong myy_state_pointer)
 {
+	/* NOTE This is required.
+	 * You NEED to send an event and treat the event in the
+	 * event loop.
+	 * The reason being this function will be called from Java
+	 * by ANOTHER THREAD.
+	 * However, the event loop is only managed by the main
+	 * graphic thread.
+	 * So no OpenGL function calls from there.
+	 */
 	myy_vector_utf8_reset(&received_string);
 	jbyte * __restrict const utf8_string =
 		(*jni)->GetByteArrayElements(jni, provided_string, NULL);
 	size_t const utf8_string_size =
 		(*jni)->GetArrayLength(jni, provided_string);
-
 	myy_vector_utf8_add(&received_string,
 		utf8_string_size,
 		(uint8_t const * __restrict) utf8_string);
-	uint8_t append = 0;
-	myy_vector_utf8_add(&received_string, 1, &append);
-	android_app_write_cmd(ugly_pointer, MYY_APP_CMD_EDITOR_SENT_TEXT);
+	android_app_write_cmd(ugly_pointer, MYY_APP_CMD_EDITOR_FINISHED);
+		
 }
+
+#ifdef __cplusplus
+};
+#endif
+
 
 /**
  * Initialize an EGL context for the current display.
@@ -168,11 +191,11 @@ static int add_egl_context_to(
 	return 0;
 }
 
-static void egl_sync(struct egl_elements* const e) {
+static void egl_sync(struct egl_elements * const e) {
 	eglSwapBuffers(e->display, e->surface);
 }
 
-static void egl_stop(struct egl_elements* const e) {
+static void egl_stop(struct egl_elements * const e) {
 	if (e->display != EGL_NO_DISPLAY) {
 		eglMakeCurrent(e->display, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
 		if (e->context != EGL_NO_CONTEXT)
@@ -217,7 +240,7 @@ static int32_t engine_handle_input(
 	switch(event_type) {
 		case AINPUT_EVENT_TYPE_KEY: return 0;
 		case AINPUT_EVENT_TYPE_MOTION:
-			;
+		{
 			int32_t const action =
 				AMotionEvent_getAction(event);
 			int32_t const pointer_i =
@@ -252,6 +275,7 @@ static int32_t engine_handle_input(
 				default:
 					return 0;
 			}
+		}
 	}
 	myy_input(states, myy_event_type, &myy_event);
 
@@ -317,6 +341,7 @@ static void engine_handle_cmd(
 		myy_event.android.state = myy_android_state_pause;
 		break;
 	case APP_CMD_STOP:
+	    LOGW("========= STOP !");
 		myy_event_type = myy_input_event_android_state;
 		myy_event.android.state = myy_android_state_stop;
 		break;
@@ -331,11 +356,16 @@ static void engine_handle_cmd(
 		egl_stop(e);
 	case MYY_APP_CMD_EDITOR_SENT_TEXT:
 		myy_event_type = myy_input_event_text_received;
-		myy_event.text.data = myy_vector_utf8_data(&received_string);
+		myy_event.text.data = (char const *) myy_vector_utf8_data(&received_string);
+		myy_event.text.length = myy_vector_utf8_length(&received_string);
+	case MYY_APP_CMD_EDITOR_FINISHED:
+		myy_event_type = myy_input_event_editor_finished;
+		myy_event.text.data = (char const *) myy_vector_utf8_data(&received_string);
 		myy_event.text.length = myy_vector_utf8_length(&received_string);
 
 		flags = 0;
 		break;
+
 	}
 
 	myy_input(states, myy_event_type, &myy_event);
@@ -442,6 +472,7 @@ void myy_open_website(const char * __restrict const url) {
 
 void myy_platform_stop(myy_states * __restrict const states)
 {
+    LOG("********* PLATFORM STOP !!!");
 	struct android_app * app = states->platform_state;
 	app->animating = 0;
 }
@@ -460,6 +491,7 @@ void myy_stop(myy_states * __restrict const states)
 	 * one could cause any issue, if we end up the thread
 	 * abruptly.
 	 */
+	LOG("********* STOPPING !");
 	myy_cleanup_drawing(states);
 	myy_save_state(states, states->game_state);
 }
@@ -536,6 +568,7 @@ void android_main(struct android_app* app) {
 		while (ident >= 0) {
 
 			if (app->destroyRequested != 0) {
+			    LOG("!!!!! DESTROYING !!!!!");
 				myy_stop(&states);
 				return;
 			}
@@ -592,11 +625,12 @@ void myy_text_input_start(
 	if (activity_startInput_meth != NULL) {
 		LOGW("Starting input..., methodID address : %p\n",
 			activity_startInput_meth);
-		LOGW("Passing game_state : %p\n", &states);
+		LOGW("Passing game_state : %p\n", states);
 		flags = 1;
+		myy_user_state_from(states)->editing = true;
 		android.jni_helpers->CallVoidMethod(
 			android.env, android.java_activity,
-			activity_startInput_meth, &states, 0);
+			activity_startInput_meth, states, 0);
 	}
 	else 
 		LOGW("You're sure about that method name : %s %s\n",

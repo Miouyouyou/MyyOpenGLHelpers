@@ -19,8 +19,8 @@ inline static dimensions_uS dimensions_uS_abs_scale
 (dimensions_uS dimensions, uint16_t abs_scale)
 {
 	dimensions_uS new_dimensions = {
-		.width  = dimensions.width + abs_scale,
-		.height = dimensions.height + abs_scale
+		.width  = (uint16_t) (dimensions.width  + abs_scale),
+		.height = (uint16_t) (dimensions.height + abs_scale)
 	};
 	
 	return new_dimensions;

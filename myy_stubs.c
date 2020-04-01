@@ -4,6 +4,7 @@
 
 void weak_function myy_user_quit(
 	myy_states * __restrict const states) {
+	LOG("User quit\n");
 	myy_platform_stop(states);
 }
 
@@ -62,9 +63,9 @@ void weak_function myy_resume_state(
 
 void weak_function myy_cleanup_drawing(
 	myy_states * __restrict const states)
-{}
+{ LOG("Cleanup drawing.\n"); }
 
-void weak_function myy_stop(myy_states * __restrict const states) {}
+void weak_function myy_stop(myy_states * __restrict const states) { LOG("Stopping...\n"); }
 
 void weak_function myy_text_input_start(
 	myy_states * __restrict state)
@@ -95,6 +96,9 @@ void weak_function myy_input(
 			break;
 		case myy_input_event_text_received:
 			LOG("TEXT: %s\n", event->text.data);
+			break;
+		case myy_input_event_editor_finished:
+			LOG("EDITOR: %s\n", event->text.data);
 			break;
 		case myy_input_event_surface_size_changed:
 			myy_display_initialised(

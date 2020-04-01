@@ -31,7 +31,10 @@ struct myy_vector myy_vector_init(
 {
 	struct myy_vector vector;
 
-	size_t allocated_size = ALIGN_ON_POW2(n_octets, 4096);
+	size_t allocated_size = 
+		ALIGN_ON_POW2(n_octets, MYY_DEFAULT_VECTOR_SIZE);
+	LOG("\n\n\n\n[Myy_vector_init] (%zu octets)\n", allocated_size);
+
 	uintptr_t const begin = (uintptr_t) (malloc(allocated_size));
 	memset((void *) begin, 0, allocated_size);
 	vector.begin = begin;

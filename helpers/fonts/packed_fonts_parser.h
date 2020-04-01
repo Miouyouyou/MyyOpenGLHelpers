@@ -26,7 +26,9 @@ struct myy_packed_fonts_info_header {
 	uint32_t codepoints_start_offset;
 	uint32_t glyphdata_start_offset;
 	uint32_t texture_filenames_offset;
-	uint32_t unused[2];
+	int16_t min_bearing_y;
+	uint16_t padding;
+	uint32_t unused;
 };
 
 
@@ -57,8 +59,19 @@ struct gl_text_infos {
 	myy_vector_quads * __restrict quads;
 	int16_t tex_width, tex_height;
 	GLuint tex_id;
+	int16_t min_bearing_y;
+#ifdef __cplusplus
+	int16_t default_max_line_height() {
+		return -glyphdata_addr->advance_y_px;
+	}
+#endif
 };
 
+typedef struct gl_text_infos gl_text_atlas_t;
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 bool myy_packed_fonts_load(
 	char const * __restrict const filename,
 	struct gl_text_infos * __restrict const infos,
@@ -70,5 +83,9 @@ static inline void myy_packed_fonts_unload(
 {
 	fh_UnmapFileFromMemory(handle);
 }
+#ifdef __cplusplus
+}
+#endif
+
 
 #endif

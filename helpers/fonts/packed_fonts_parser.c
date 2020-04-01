@@ -163,16 +163,18 @@ bool myy_packed_fonts_load(
 		mapping.address;
 
 	LOG("[myy_parse_packed_fonts]\n"
-	    "  filename                   : %s\n"
-	    "  Codepoints stored          : %d\n"
-	    "  Codepoints starting offset : %d\n"
-	    "  Glyph data start offset    : %d\n"
-	    "  Texture names offset       : %d\n",
-	    filename,
-	    header->n_stored_codepoints,
-	    header->codepoints_start_offset,
-	    header->glyphdata_start_offset,
-	    header->texture_filenames_offset);
+		"  filename                   : %s\n"
+		"  Codepoints stored          : %d\n"
+		"  Codepoints starting offset : %d\n"
+		"  Glyph data start offset    : %d\n"
+		"  Texture names offset       : %d\n"
+		"  Min bearing y              : %d\n",
+		filename,
+		header->n_stored_codepoints,
+		header->codepoints_start_offset,
+		header->glyphdata_start_offset,
+		header->texture_filenames_offset,
+		header->min_bearing_y);
 
 	infos->stored_codepoints = header->n_stored_codepoints;
 	infos->codepoints_addr =
@@ -180,6 +182,7 @@ bool myy_packed_fonts_load(
 	infos->glyphdata_addr =
 			(mapping.address + header->glyphdata_start_offset);
 	infos->quads = &text_quads;
+	infos->min_bearing_y = header->min_bearing_y;
 
 	everything_went_fine =
 		load_texture_and_get_metadata(header, infos, sample_props);

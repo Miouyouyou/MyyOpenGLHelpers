@@ -37,11 +37,6 @@
 #undef _POSIX_C_SOURCE
 #endif
 
-#include <myy/helpers/fonts/packed_fonts_display.h>
-#include <myy/helpers/hitbox_action.h>
-
-#include <myy/helpers/strings.h>
-
 enum myy_input_events {
 	myy_input_event_invalid,
 	myy_input_event_mouse_moved_absolute,
@@ -54,6 +49,7 @@ enum myy_input_events {
 	myy_input_event_keyboard_key_pressed,
 	myy_input_event_keyboard_key_released,
 	myy_input_event_text_received,
+	myy_input_event_editor_finished,
 	myy_input_event_surface_size_changed,
 	myy_input_event_window_destroyed,
 	myy_input_event_window_focus_in,
@@ -136,6 +132,11 @@ struct myy_states_s {
 };
 typedef struct myy_states_s myy_states;
 
+#include <myy/helpers/fonts/packed_fonts_display.h>
+#include <myy/helpers/hitbox_action.h>
+
+#include <myy/helpers/strings.h>
+
 struct myy_common_data {
 	struct glyph_infos * __restrict fonts_glyphs;
 	hitboxes_S_t * hitboxes;
@@ -147,6 +148,9 @@ struct myy_window_parameters {
 	uintreg_t height;
 };
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 void myy_display_initialised(
 	myy_states * __restrict state,
 	unsigned int width,
@@ -202,5 +206,9 @@ void myy_text_input_start(myy_states * __restrict state);
 void myy_text_input_stop(myy_states * __restrict state);
 
 void myy_platform_stop(myy_states * __restrict state);
+
+#ifdef __cplusplus
+} /* Extern "C" */
+#endif
 
 #endif 
