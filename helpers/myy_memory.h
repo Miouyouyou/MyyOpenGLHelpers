@@ -1,5 +1,10 @@
-#include <cstdint>
+#ifndef MYY_MEMORY_H
+#define MYY_MEMORY_H 1
 
+#include <stdint.h>
+#include <stdlib.h>
+
+#ifdef __cplusplus
 
 namespace myy {
 
@@ -23,3 +28,7 @@ namespace myy {
 	}
 
 }
+
+#endif
+
+#endif

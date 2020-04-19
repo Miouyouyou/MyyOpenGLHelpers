@@ -3,9 +3,6 @@
 
 #include <stdint.h>
 
-#ifdef __cplusplus
-extern "C" {
-#endif
 
 struct myy_S_position    {  int16_t x, y; };
 struct myy_uS_position   { uint16_t x, y; };
@@ -126,9 +123,5 @@ static inline position_S position_S_clamp_to_rectangle(
 
 	return pos;
 }
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif

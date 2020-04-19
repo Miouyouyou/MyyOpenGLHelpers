@@ -40,7 +40,8 @@ uint8_t dyn_array_generic_ensure_space_for_more_u16
 void dyn_array_data_pointers_init
 (DynPointers_u16_t * __restrict const dyn_array, uint16_t const max)
 {
-	dyn_array->data  = allocate_durable_memory(max * sizeof(void *));
+	dyn_array->data  = 
+		(void **) allocate_durable_memory(max * sizeof(void *));
 	dyn_array->count = 0;
 	dyn_array->max   = max;
 }

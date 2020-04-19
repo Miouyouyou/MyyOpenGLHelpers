@@ -1,16 +1,11 @@
 #ifndef MYY_HELPERS_TEMP_STRING_H
 #define MYY_HELPERS_TEMP_STRING_H 1
 
-#include "myy/helpers/vector.h"
-#include "myy/helpers/strings.h"
+#include "myy/myy.h"
 
 #include <stddef.h>
-
 #include <stdbool.h>
 
-#ifdef __cplusplus
-extern "C" {
-#endif
 
 /* TODO Créer une classe pour les chaînes de caractères temporaire.
  * - Pas d'arguments spéciaux à la création.
@@ -78,8 +73,5 @@ void temp_string_destroy(
 		myy_vector_utf8_free_content(temp_string->vector);
 }
 
-#ifdef __cplusplus
-}
-#endif
 
 #endif

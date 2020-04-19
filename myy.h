@@ -24,6 +24,36 @@
 #ifndef MYY_INCLUDED
 #define MYY_INCLUDED 1
 
+#include "helpers/c_types.h"
+#include "helpers/strings.h"
+#include "current/opengl.h"
+
+#include "helpers/arrays.h"
+#include "helpers/buffers.h"
+#include "helpers/colors.h"
+#include "helpers/dimensions.h"
+#include "helpers/file.h"
+#include "helpers/hitbox_action.h"
+#include "helpers/log.h"
+#include "helpers/macros.h"
+#include "helpers/matrices.h"
+#include "helpers/memory.h"
+#include "helpers/myy_memory.h"
+#include "helpers/opengl/buffers.h"
+#include "helpers/opengl/loaders.h"
+#include "helpers/opengl/shaders_pack.h"
+#include "helpers/position.h"
+#include "helpers/random.h"
+#include "helpers/struct.h"
+#include "helpers/temp_string.h"
+#include "helpers/vector.h"
+
+#ifdef __cplusplus
+#include "helpers/myy_vector.hpp"
+#include "helpers/points.hpp"
+
+#endif
+
 #ifndef _POSIX_C_SOURCE
 #define HAD_TO_DEFINE_POSIX_C_SOURCE 1
 #define _POSIX_C_SOURCE 201901L
@@ -148,9 +178,6 @@ struct myy_window_parameters {
 	uintreg_t height;
 };
 
-#ifdef __cplusplus
-extern "C" {
-#endif
 void myy_display_initialised(
 	myy_states * __restrict state,
 	unsigned int width,
@@ -206,9 +233,5 @@ void myy_text_input_start(myy_states * __restrict state);
 void myy_text_input_stop(myy_states * __restrict state);
 
 void myy_platform_stop(myy_states * __restrict state);
-
-#ifdef __cplusplus
-} /* Extern "C" */
-#endif
 
 #endif 

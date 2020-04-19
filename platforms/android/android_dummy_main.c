@@ -71,9 +71,6 @@ static struct android_app * ugly_pointer = NULL;
 
 static myy_vector_utf8 received_string;
 
-#ifdef __cplusplus
-extern "C" {
-#endif
 
 void myy_editor_finished(
 	myy_states * __restrict const states,
@@ -119,10 +116,6 @@ void Java_com_miouyouyou_gametests_NativeInsanity_myyTextInputStopped(
 	android_app_write_cmd(ugly_pointer, MYY_APP_CMD_EDITOR_FINISHED);
 		
 }
-
-#ifdef __cplusplus
-};
-#endif
 
 
 /**

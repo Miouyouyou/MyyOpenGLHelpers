@@ -69,9 +69,7 @@ struct gl_text_infos {
 
 typedef struct gl_text_infos gl_text_atlas_t;
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+
 bool myy_packed_fonts_load(
 	char const * __restrict const filename,
 	struct gl_text_infos * __restrict const infos,
@@ -83,9 +81,5 @@ static inline void myy_packed_fonts_unload(
 {
 	fh_UnmapFileFromMemory(handle);
 }
-#ifdef __cplusplus
-}
-#endif
-
 
 #endif

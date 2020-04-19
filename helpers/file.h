@@ -28,7 +28,7 @@
 
 struct myy_fh_map_handle {
 	unsigned int ok;
-	void * address;
+	uint8_t * address;
 	int length;
 	intptr_t id;
 };

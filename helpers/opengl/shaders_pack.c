@@ -217,7 +217,9 @@ bool myy_shaders_pack_load_all_programs_from_file(
 	bool all_programs_load_status = false;
 	if (mapping.ok) {
 		all_programs_load_status = myy_shaders_pack_load_all_programs(
-			mapping.address, data_structure);
+			(uint8_t const * __restrict)
+			mapping.address,
+			data_structure);
 		fh_UnmapFileFromMemory(mapping);
 	}
 

@@ -26,10 +26,6 @@ union myy_4x4_matrix {
 
 typedef union myy_4x4_matrix myy_4x4_matrix_t;
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 void myy_matrix_4x4_print
 (union myy_4x4_matrix const * __restrict const matrix);
 
@@ -84,9 +80,5 @@ static void myy_matrix_4x4_ortho_layered_rdepth_window_coords(
 	*matrix = ortho_matrix;
 }
 
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif

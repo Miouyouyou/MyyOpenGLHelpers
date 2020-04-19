@@ -91,7 +91,10 @@ static bool load_texture_and_get_metadata(
 	GLuint texture_id;
 	glGenTextures(1, &texture_id);
 	glhUploadMyyRawTextureData(
-		texture_mapping.address, texture_id, sampler_props);
+		(uint8_t const * __restrict)
+		texture_mapping.address,
+		texture_id,
+		sampler_props);
 	infos->tex_id = texture_id;
 
 	fh_UnmapFileFromMemory(texture_mapping);
@@ -178,8 +181,10 @@ bool myy_packed_fonts_load(
 
 	infos->stored_codepoints = header->n_stored_codepoints;
 	infos->codepoints_addr =
+			(uint32_t const *)
 			(mapping.address + header->codepoints_start_offset);
 	infos->glyphdata_addr =
+			(struct myy_packed_fonts_glyphdata const *)
 			(mapping.address + header->glyphdata_start_offset);
 	infos->quads = &text_quads;
 	infos->min_bearing_y = header->min_bearing_y;

@@ -31,7 +31,7 @@
 void myy_platform_stop(myy_states * __restrict const states)
 {
 	struct myy_xlib_state * __restrict const platform_state =
-		(void *) (states->platform_state);
+		(myy_xlib_state * __restrict) (states->platform_state);
 	*platform_state->running = 0;
 }
 

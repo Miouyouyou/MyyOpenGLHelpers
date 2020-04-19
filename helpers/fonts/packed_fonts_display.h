@@ -44,10 +44,6 @@ struct myy_text_properties {
 typedef struct myy_text_properties myy_text_props_t;
 
 /* WARNING Currently broken */
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 __attribute__((unused))
 static inline myy_text_props_t myy_text_props_layered_color(
 	uint16_t const layer,
@@ -108,7 +104,4 @@ void myy_gl_text_infos_chars_to_quads(
 		struct myy_text_properties const * __restrict const metadata),
 	void * deal_with_generated_quads_user_arg);
 
-#ifdef __cplusplus
-}
-#endif
 #endif

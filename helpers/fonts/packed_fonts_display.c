@@ -99,10 +99,10 @@ int16_t myy_glyph_to_quad_window_coords(
 			.right     = right_px,
 			.down      = glyph_y_offset_px,
 			.up        = up_px,
-			.tex_left  = glyphdata->tex_left,
-			.tex_right = glyphdata->tex_right,
-			.tex_up    = glyphdata->tex_bottom, // TODO : Fix this in the texture !!
-			.tex_down  = glyphdata->tex_top
+			.tex_left  = (int16_t) glyphdata->tex_left,
+			.tex_right = (int16_t) glyphdata->tex_right,
+			.tex_down  = (int16_t) glyphdata->tex_top,
+			.tex_up    = (int16_t) glyphdata->tex_bottom // TODO : Fix this in the texture !!
 		};
 		myy_vector_quads_add(quads, 1, &text_quad);
 

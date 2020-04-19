@@ -11,14 +11,9 @@ struct shader_load_status {
 	GLuint shader_id;
 };
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+
 bool glhLinkProgram(
 	GLuint const program_id);
-#ifdef __cplusplus
-}
-#endif
 
 struct shader_load_status glhLoadShader(
 	GLenum const shaderType,
@@ -26,9 +21,6 @@ struct shader_load_status glhLoadShader(
 	GLsizei const shader_code_size,
 	GLuint const program);
 
-#ifdef __cplusplus
-extern "C" {
-#endif
 GLuint glhBuildProgramFromFiles
 (char const * __restrict const vsh_filename,
  char const * __restrict const fsh_filename,
@@ -40,9 +32,6 @@ GLuint glhSetupAndUse
  char const * __restrict const fsh_filename,
  uint8_t n_attributes,
  char const * __restrict const attributes_names);
-#ifdef __cplusplus
-}
-#endif
 
 #define MYYT_SIGNATURE 0x5459594d
 struct myy_raw_texture_header {
@@ -69,9 +58,6 @@ struct myy_sampler_properties {
 	GLint max_filter; /* GL_{MIPMAP,}_{NEAREST,LINEAR} */
 };
 
-#ifdef __cplusplus
-extern "C" {
-#endif
 __attribute__((unused))
 static inline struct myy_sampler_properties
 myy_sampler_properties_default()
@@ -160,8 +146,5 @@ void glhUploadMyyRawTextures
  */
 void glhActiveTextures
 (GLuint const * const texids, int const n_textures);
-#ifdef __cplusplus
-}
-#endif
 
 #endif

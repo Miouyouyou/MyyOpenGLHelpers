@@ -36,6 +36,7 @@ set (MyyHelpersHeaders
 	myy/helpers/temp_string.h
 	myy/helpers/vector.h)
 
+
 add_custom_target(MyyHeaders SOURCES ${MyyHelpersHeaders})
 
 if (MYY_DEBUG)
@@ -50,6 +51,7 @@ if (MYY_X11 OR MYY_DRM)
 		${MyyCommonHelpers}
 		${MyyLinuxHelpers}
 		${MyyProjectSources})
+	set_source_files_properties(${CommonSources} PROPERTIES LANGUAGE CXX)
 	set(CommonLibraries
 		GLESv2
 		EGL
@@ -60,6 +62,7 @@ if (MYY_X11 OR MYY_DRM)
 			myy/platforms/linux/X11/Xlib/init_window.c
 			myy/platforms/linux/X11/Xlib/main.c)
 
+		set_source_files_properties(${MyyX11Sources} PROPERTIES LANGUAGE CXX)
 		add_executable(Program_X11
 			${MyyMainHooks}
 			${CommonSources}
@@ -91,6 +94,7 @@ if (MYY_X11 OR MYY_DRM)
 		set(MyyDRMSources
 		    myy/platforms/linux/DRM/main.c
 		    myy/platforms/linux/DRM/evdev.c)
+		set_source_files_properties(${MyyDRMSources} PROPERTIES LANGUAGE CXX)
 		include_directories(
 			${DRM_INCLUDE_DIRS}
 			${GBM_INCLUDE_DIRS}
@@ -160,6 +164,12 @@ if (MYY_ANDROID)
 		myy/platforms/android/android_dummy_main.c
 		myy/platforms/android/android_native_app_glue.c
 		myy/platforms/android/helpers/android_file.c)
+	set_source_files_properties(
+		${MyyAndroidSources}
+		${MyyCommonHelpers}
+		${MyyProjectSources}
+		${MyyMainHooks}
+		PROPERTIES LANGUAGE CXX)
 	find_library(android-lib-log     log)
 	find_library(android-lib-GLESv2  GLESv2)
 	find_library(android-lib-EGL     EGL)

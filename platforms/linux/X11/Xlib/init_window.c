@@ -128,7 +128,7 @@ int CreateNativeWindow(
 	char const * __restrict const title = window_params->title;
 	Bool detectable_autorepeat_supported = FALSE;
 	struct myy_xlib_state * __restrict const xlib_state =
-		implementation_details;
+		(typeof(xlib_state)) implementation_details;
 
 	root = DefaultRootWindow(x_display);
 
@@ -208,6 +208,7 @@ int CreateNativeWindow(
 	xlib_state->xic = xic;
 	xlib_state->xim = xim;
 	xlib_state->compose_buffer =
+		(typeof(xlib_state->compose_buffer))
 		allocate_durable_memory(4096);
 
 	if (xlib_state->compose_buffer == NULL) {
@@ -444,7 +445,7 @@ void ParseEvents(
 
 	XEvent xev;
 	struct myy_xlib_state const * __restrict const xlib_state =
-		implementation_details;
+		(typeof(xlib_state)) implementation_details;
 
 	while ( XPending( x_display ) ) {
 		XNextEvent( x_display, &xev );
@@ -454,25 +455,34 @@ void ParseEvents(
 		union myy_input_event_data data;
 		switch(xev.type) {
 			case ClientMessage:
+			{
 				if (xev.xclient.data.l[0] == destroy) {
 					event_type = myy_input_event_window_destroyed;
 				}
-				break;
+			}
+			break;
 			case ResizeRequest:
+			{
 				event_type = myy_input_event_surface_size_changed;
 				data.surface.width  = xev.xresizerequest.width;
 				data.surface.height = xev.xresizerequest.height;
-				break;
+			}
+			break;
 			case FocusIn:
+			{
 				event_type = myy_input_event_window_focus_in;
 				LOG("FocusIN\n");
-				break;
+			}
+			break;
 			case FocusOut:
+			{
 				event_type = myy_input_event_window_focus_out;
 				LOG("FocusOUT\n");
-				break;
+			}
+			break;
 			case ButtonPress:
 			case ButtonRelease:
+			{
 				event_type = 
 					(xev.type == ButtonPress)
 					? myy_input_event_mouse_button_pressed
@@ -483,15 +493,19 @@ void ParseEvents(
 				data.mouse_button.index = 0;
 				data.mouse_button.state = 0;
 				data.mouse_button.button_number = xev.xbutton.button;
-				break;
+			}
+			break;
 			case MotionNotify:
+			{
 				event_type = myy_input_event_mouse_moved_absolute;
 				data.mouse_move_absolute.x = xev.xmotion.x;
 				data.mouse_move_absolute.y = xev.xmotion.y;
 				data.mouse_move_absolute.index = 0;
 				data.mouse_move_absolute.type  = 1;
-				break;
+			}
+			break;
 			case KeyPress:
+			{
 				//myy_key(xev.xkey.keycode);
 				//XSetICFocus(xlib_state->xic);
 				;
@@ -536,18 +550,23 @@ void ParseEvents(
 						myy_input(states, event_type, &data);
 						break;
 				}
-				break;
+			}
+			break;
 			case KeyRelease:
+			{
 				event_type         = myy_input_event_keyboard_key_released;
 				data.key.raw_code  = xev.xkey.keycode-8;
 				data.key.modifiers = 0;
 				data.key.state     = 1;
-				break;
+			}
+			break;
 			case DestroyNotify:
 			case UnmapNotify:
+			{
 				event_type = myy_input_event_window_destroyed;
 				LOG("Blargh !");
-				break;
+			}
+			break;
 		}
 		myy_input(states, event_type, &data);
 	}
@@ -558,7 +577,7 @@ void myy_text_input_start(
 	myy_states * __restrict const state)
 {
 	struct myy_xlib_state * __restrict const xlib_state =
-		(void *) (state->platform_state);
+		(typeof(xlib_state)) (state->platform_state);
 	XSetICFocus(xlib_state->xic);
 }
 
@@ -566,7 +585,7 @@ void myy_text_input_stop(
 	myy_states * __restrict const state)
 {
 	struct myy_xlib_state * __restrict const xlib_state =
-		(void *) (state->platform_state);
+		(typeof(xlib_state)) (state->platform_state);
 	XUnsetICFocus(xlib_state->xic);
 }
 
@@ -576,7 +595,7 @@ void Terminate(
 	void * implementation_details)
 {
 	struct myy_xlib_state * __restrict const xlib_state =
-		implementation_details;
+		(typeof(xlib_state)) implementation_details;
 
 	if (window) XDestroyWindow( display, window );
 

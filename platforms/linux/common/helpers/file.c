@@ -140,8 +140,8 @@ struct myy_fh_map_handle fh_MapFileToMemory
 
 	struct myy_fh_map_handle handle = {
 		.ok      = ok,
-		.address = mapped_address,
-		.length  = file_size
+		.address = (uint8_t *) mapped_address,
+		.length  = (int) file_size
 	};
 	return handle;
 }
